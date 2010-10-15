@@ -14,7 +14,7 @@
 #include "qsup_gw.h"
 #include "qsup.h"
 
-#include <linux/aquosa/kal_sched.h>
+#include "kal_sched.h"
 
 /** UID of the user authorized to create the default server	*/
 #define QSUP_DEFAULT_SRV_UID 0

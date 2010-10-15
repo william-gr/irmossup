@@ -68,7 +68,7 @@ typedef struct __qos_rv { } *qos_rv;
 #define QOS_E_NOSERVER QOS_E_NOT_FOUND
 
 /** @} */
-
+#define QOS_KS
 #ifdef QOS_KS
 //#  include <linux/autoconf.h>
 #  include <linux/kernel.h>
@@ -107,8 +107,7 @@ typedef struct __qos_rv { } *qos_rv;
 #  define DBG_TIME_FORMAT
 #  define DBG_TIME
 
-// TODO: replace with gcc built-in atomic memory operations (__sync_xxx)
-//
+/* TODO: replace with gcc built-in atomic memory operations (__sync_xxx) */
 #  define atomic_t int
 #  define ATOMIC_INIT(x) (x)
 #  define atomic_inc_return(p) (++(*(p)))

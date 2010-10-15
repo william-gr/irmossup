@@ -10,7 +10,7 @@
 #ifndef _QRES_PROC_FS_H_
 #define _QRES_PROC_FS_H_
 
-#include <linux/aquosa/qres_config.h>
+#include "qres_config.h"
 
 int qres_proc_register(void);
 void qres_proc_unregister(void);

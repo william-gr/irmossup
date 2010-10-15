@@ -18,8 +18,8 @@
 #ifndef RRES_PROTECTED_KPI_H_
 #define RRES_PROTECTED_KPI_H_
 
-#include <linux/aquosa/qos_debug.h>
-#include <linux/aquosa/rres_server.h>
+#include "qos_debug.h"
+#include "rres_server.h"
 
 /** Non-virtual server destructor             */
 qos_rv _rres_cleanup_server(server_t *srv);

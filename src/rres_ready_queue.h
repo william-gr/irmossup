@@ -14,7 +14,7 @@
 #include "qos_func.h"
 
 /** Avoids circular dependencies **/
-typedef struct server_t *server_p;
+typedef struct server_t server_t, *server_p;
 
 #ifdef RRES_USE_HEAP
 #  include "rres_ready_queue_eheap.h"

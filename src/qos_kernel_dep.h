@@ -20,7 +20,7 @@
 #include <linux/kdev_t.h>
 #include <linux/fs.h>
 
-#include <linux/aquosa/qos_debug.h>
+#include "qos_debug.h"
 
 #if LINUX_VERSION_CODE<KERNEL_VERSION(2,6,0)
 

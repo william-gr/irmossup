@@ -1,5 +1,5 @@
-#ifndef __KAL_TASK_H__
-#define __KAL_TASK_H__
+#ifndef KAL_TASK_H_
+#define KAL_TASK_H_
 
 /** @file
  * @brief Abstraction of a task within the kernel abstraction layer (KAL).
@@ -21,7 +21,7 @@
 #include <linux/sched.h>
 #include <linux/hardirq.h>
 
-typedef struct task_struct kal_task_t;
+//#include "qos_kernel_dep.h"
 
 /** the type of uid is uid_t in linux */
 typedef uid_t kal_uid_t;
@@ -39,69 +39,34 @@ typedef gid_t kal_gid_t;
 
 #endif
 
-#if LINUX_VERSION_CODE<KERNEL_VERSION(2,6,27)
-
-# define current_uid()		(current->uid)
-# define current_gid()		(current->gid)
-# define current_euid()		(current->euid)
-# define current_egid()		(current->egid)
-
-# define task_uid(task)		((task)->uid)
-# define task_gid(task)		((task)->gid)
-# define task_euid(task)	((task)->euid)
-# define task_egid(task)	((task)->egid)
-
-#elif LINUX_VERSION_CODE>KERNEL_VERSION(2,6,28)
-
-#  define task_gid(task)	(task_cred_xxx((task), gid))
-#  define task_egid(task)	(task_cred_xxx((task), egid))
-
-#endif
-
 /** return the user id of the process currently executing */
-static inline kal_uid_t kal_get_current_uid(void)
+static inline uid_t kal_get_current_uid(void)
 {
-  return current_uid();
+  //return current->uid;
+  return 0;
 }
 
 /** return the group id of the process currently executing */
-static inline kal_uid_t kal_get_current_gid(void)
+static inline gid_t kal_get_current_gid(void)
 {
-  return current_gid();
+  //return current->gid;
+  return 0;
 }
 
-/** return the user id of the specified task */
-static inline kal_uid_t kal_task_get_uid(kal_task_t *p_task)
-{
-  return task_euid(p_task);
+static inline void task_link_data(struct task_struct *task, void *data) {
+  //task->private_data = data;
 }
 
-/** return the group id of the specified task */
-static inline kal_gid_t kal_task_get_gid(kal_task_t *p_task)
-{
-  return task_egid(p_task);
+static inline void task_unlink_data(struct task_struct *task) {
+  //task->private_data = NULL;
 }
 
-/** return the task that is currently executing */
-static inline kal_task_t *kal_task_current(void)
-{
-  return (kal_task_t *) current;
-}
-
-static inline void kal_task_link_data(kal_task_t *task, void *data) {
-  task->private_data = data;
-}
-
-static inline void kal_task_unlink_data(kal_task_t *task) {
-  task->private_data = NULL;
-}
-
-static inline void *kal_task_get_data(kal_task_t *task) {
+static inline void *task_get_data(struct task_struct *task) {
   qos_chk_do(task != NULL, return NULL);
-  return task->private_data;
+  //return task->private_data;
 }
 
-static inline int kal_task_get_id(kal_task_t *task) {
+static inline int task_get_id(struct task_struct *task) {
   qos_chk(task != NULL);
   return task->pid;
 }
@@ -114,15 +79,9 @@ static inline int kal_task_get_id(kal_task_t *task) {
  ** after the exit hook has passed in exit.c, but the task
  ** may still be found through find_task_by_id().
  **/
-static inline int kal_task_alive(struct task_struct *task) {
+static inline int task_alive(struct task_struct *task) {
   return (task->flags & PF_EXITING) == 0;
 }
-
-#if LINUX_VERSION_CODE>=KERNEL_VERSION(2,6,27)
-#  define kal_find_task_by_pid find_task_by_vpid
-#else
-#  define kal_find_task_by_pid find_task_by_pid
-#endif
 
 typedef unsigned long kal_irq_state;
 typedef spinlock_t kal_lock_t;
@@ -141,7 +100,7 @@ typedef spinlock_t kal_lock_t;
   spin_unlock_irqrestore(p_lock, *p_state); \
 } while (0)
 
-#define kal_atomic() (in_atomic() || irqs_disabled())
+#define kal_atomic() (in_atomic())
 
 /* @todo maybe task_ready goes here ? */
 
@@ -155,8 +114,6 @@ typedef spinlock_t kal_lock_t;
 #define TASK_RUNNING 0
 
 struct task_struct;
-
-typedef struct task_struct kal_task_t;
 
 extern void *current;  
 extern void *idle;  
@@ -175,13 +132,17 @@ typedef gid_t kal_gid_t;
 /** return the user id of the process currently executing */
 static inline uid_t kal_get_current_uid(void)
 {
-  return current_uid();
+//#warning  qos_log_warn("Not implemented : (");
+  return 0;
+  //return current->uid;
 }
 
 /** return the group id of the process currently executing */
 static inline gid_t kal_get_current_gid(void)
 {
-  return current_gid();
+//#warning  qos_log_warn("Not implemented : (");
+  return 0;
+  //return current->gid;
 }
 
 #define for_each_task(t, pos) \
@@ -197,15 +158,15 @@ extern void (*fork_hook)(struct task_struct *tsk);
 extern void (*cleanup_hook)(struct task_struct *tsk);
 extern rwlock_t hook_lock;
 
-void set_task_rr_prio(kal_task_t *p, int priority);
+void set_task_rr_prio(struct task_struct *p, int priority);
 
-void kal_task_link_data(kal_task_t *task, void *data);
-void kal_task_unlink_data(kal_task_t *task);
-void *kal_task_get_data(kal_task_t *task);
-int kal_task_get_id(kal_task_t *task);
-int kal_task_ready(kal_task_t * task);
+void task_link_data(struct task_struct *task, void *data);
+void task_unlink_data(struct task_struct *task);
+void *task_get_data(struct task_struct *task);
+int task_get_id(struct task_struct *task);
+int task_ready(struct task_struct * task);
 
 #endif /* QOS_KS */
 
 
-#endif /* __KAL_TASK_H__ */
+#endif /*KAL_TASK_H_*/
