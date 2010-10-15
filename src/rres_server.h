@@ -22,13 +22,6 @@
 #include "kal_timer.h"
 #include "kal_sched.h"
 
-/** Set to 1 in order to enable paranoid checks.
- **
- ** These are further checks of parameters and assert conditions that
- ** should not be needed, if all of the components behaved as expected.
- **/
-#define RRES_PARANOID 1
-
 /** RRES server main structure */
 struct server_t {
   qres_sid_t id;              /**< Server identifier                    */
@@ -56,19 +49,23 @@ struct server_t {
   /** Virtual destructor (does not deallocate memory for server_t structure)    */
   qos_rv (*cleanup)(struct server_t *srv);
 
-  struct list_head tasks;	/**< Head of list of tasks served by the server  */
-  int activations;		/**< Number of pending activations               */
+  struct list_head ready_tasks;	/**< Head of list of attached ready tasks (task lists)       */
+  struct list_head blocked_tasks; /**< Head of list of attached blocked tasks (task lists)   */
   kal_timer_t reactive;		/**< When this timer fires, the server is reactivated (put in ready queue) */
 #ifdef CONST_TIME_DISPATCH
   struct list_head disp_tasks;	/**< Head of task_struct list used by CONST_TIME dispatching mechanism */
 #endif
 
-  int forbid_reorder;		/**< Forbids update_task_order() while iterating on task list **/
+  int forbid_reorder;		/**< Forbids update_task_order() while iterating on task list   **/
+  unsigned int weight;          /**< Scheduling weight, currently only used by SHRUB            **/
 };
 
-//typedef struct server_t server_t;
+typedef struct server_t server_t;
 
 extern qos_bw_t U_tot;          /**< Total allocated bandwidth */
+#ifdef SHRUB
+extern qos_bw_t U_active_tot;   /**< Total bandwidth of active servers */
+#endif
 
 /** This adds a tolerance to U_LUB as defined for QRES/QSUP, so to
  ** avoid that RRESMOD notifies a system overload when QRES/QSUP do not.
@@ -81,10 +78,21 @@ static inline qos_rv rres_cleanup_server(server_t *srv) {
   return srv->cleanup(srv);
 }
 
-/** Used to queue a task in a MULTITASKING server */
+/** Set the user-supplied server weight, that may be used by
+ ** some scheduling policies (i.e., shrub).
+ **/
+static inline void rres_set_weight(server_t *srv, unsigned int weight) {
+  srv->weight = weight;
+}
+
+static inline unsigned int rres_get_weight(server_t *srv) {
+  return srv->weight;
+}
+
+/** Used to queue a task as either active or blocked within a server */
 struct task_list {
   struct task_struct *task;       /**< pointer to the task served                       */
-  struct list_head others;        /**< used to queue the task in the server's task list */
+  struct list_head node;          /**< used to queue the task in the server's task list */
   qos_bool_t is_stopped;          /**< used to avoid stopping a task twice              */
   server_t *srv;                  /**< RRES server                                      */
 };

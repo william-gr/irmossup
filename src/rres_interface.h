@@ -168,24 +168,24 @@ int rres_running(server_t *srv);
 
 /** Just return one of the attached ready tasks, or NULL if none exists **/
 static inline struct task_struct *rres_any_ready_task(server_t * srv) {
-  struct task_list *tl;
+  //struct task_list *tl;
   if (RRES_PARANOID)
     qos_chk_do(srv != NULL && qos_mem_valid(srv), return NULL);
-  if (list_empty(&srv->ready_tasks))
+  //if (list_empty(&srv->ready_tasks))
     return NULL;
-  tl = list_entry(srv->ready_tasks.next, struct task_list, node);
-  return tl->task;
+  //tl = list_entry(srv->ready_tasks.next, struct task_list, node);
+  //return tl->task;
 }
 
 /** Just return one of the attached blocked tasks, or NULL if none exists **/
 static inline struct task_struct *rres_any_blocked_task(server_t * srv) {
-  struct task_list *tl;
+  //struct task_list *tl;
   if (RRES_PARANOID)
     qos_chk_do(srv != NULL && qos_mem_valid(srv), return NULL);
-  if (list_empty(&srv->blocked_tasks))
+  //if (list_empty(&srv->blocked_tasks))
     return NULL;
-  tl = list_entry(srv->blocked_tasks.next, struct task_list, node);
-  return tl->task;
+  //tl = list_entry(srv->blocked_tasks.next, struct task_list, node);
+  //return tl->task;
 }
 
 extern spinlock_t rres_lock;

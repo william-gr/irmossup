@@ -207,15 +207,15 @@ void qres_block_hook(struct task_struct *t) {
 
   old_block_hook(t);
   kal_spin_lock_irqsave(rres_get_spinlock(), &flags);
-  rres = rres_find_by_task(t);
-  if (rres && ! rres_has_ready_tasks(rres)) {
-    qres_server_t *qres = qres_find_by_rres(rres);
+  //rres = rres_find_by_task(t);
+  //if (rres && ! rres_has_ready_tasks(rres)) {
+  //  qres_server_t *qres = qres_find_by_rres(rres);
     /* Reduce current bandwidth request to minimum between Q and Q_min */
-    if (qres->params.Q > qres->params.Q_min)
-      qsup_set_required_bw(&qres->qsup, qres->params.Q_min);
+  //  if (qres->params.Q > qres->params.Q_min)
+  //    qsup_set_required_bw(&qres->qsup, qres->params.Q_min);
     //qsup_set_required_bw(&qres->qsup, 0);
-  }
-  kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);
+  //}
+  //kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);
 }
 
 void qres_unblock_hook(struct task_struct *t, long old_state) {
@@ -225,10 +225,10 @@ void qres_unblock_hook(struct task_struct *t, long old_state) {
   old_unblock_hook(t, old_state);
   kal_spin_lock_irqsave(rres_get_spinlock(), &flags);
   rres = rres_find_by_task(t);
-  if (rres && rres_has_ready_tasks(rres)) {
-    qres_server_t *qres = qres_find_by_rres(rres);
-    qsup_set_required_bw(&qres->qsup, r2bw(qres->params.Q, qres->params.P));
-  }
+  //if (rres && rres_has_ready_tasks(rres)) {
+  //  qres_server_t *qres = qres_find_by_rres(rres);
+  //  qsup_set_required_bw(&qres->qsup, r2bw(qres->params.Q, qres->params.P));
+  //}
   kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);
 }
 
@@ -239,10 +239,10 @@ void qres_stop_hook(struct task_struct *t) {
   old_stop_hook(t);
   kal_spin_lock_irqsave(rres_get_spinlock(), &flags);
   rres = rres_find_by_task(t);
-  if (rres && ! rres_has_ready_tasks(rres)) {
-    qres_server_t *qres = qres_find_by_rres(rres);
-    qsup_set_required_bw(&qres->qsup, 0);
-  }
+  //if (rres && ! rres_has_ready_tasks(rres)) {
+  //  qres_server_t *qres = qres_find_by_rres(rres);
+  //  qsup_set_required_bw(&qres->qsup, 0);
+  //}
   kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);
 }
 
@@ -253,10 +253,10 @@ void qres_continue_hook(struct task_struct *t, long old_state) {
   old_continue_hook(t, old_state);
   kal_spin_lock_irqsave(rres_get_spinlock(), &flags);
   rres = rres_find_by_task(t);
-  if (rres && rres_has_ready_tasks(rres)) {
-    qres_server_t *qres = qres_find_by_rres(rres);
-    qsup_set_required_bw(&qres->qsup, r2bw(qres->params.Q, qres->params.P));
-  }
+  //if (rres && rres_has_ready_tasks(rres)) {
+  //  qres_server_t *qres = qres_find_by_rres(rres);
+  //  qsup_set_required_bw(&qres->qsup, r2bw(qres->params.Q, qres->params.P));
+  //}
   kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);
 }
 #endif

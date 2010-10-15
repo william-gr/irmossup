@@ -1,17 +1,17 @@
 #include "qres_config.h"
 #define QOS_DEBUG_LEVEL QSUP_MOD_DEBUG_LEVEL
-#include <linux/aquosa/qos_debug.h>
+#include "qos_debug.h"
 
 #ifdef PROF_QSUP_MOD
 #  define QOS_PROFILE
 #endif
-#include <linux/aquosa/qos_prof.h>
+#include "qos_prof.h"
 
 #include "qsup_gw_ks.h"
 #include "qsup.h"
-#include <linux/aquosa/kal_sched.h>
-#include <linux/aquosa/qos_memory.h>
-#include <linux/aquosa/rres_interface.h>
+#include "kal_sched.h"
+#include "qos_memory.h"
+#include "rres_interface.h"
 
 #include <linux/kernel.h>
 #include <linux/version.h>

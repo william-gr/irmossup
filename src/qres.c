@@ -17,8 +17,8 @@
 #include "qres_config.h"
 #define QOS_DEBUG_LEVEL QRES_MOD_DEBUG_LEVEL
 #include "qos_debug.h"
-//#include <linux/posix-timers.h>
-//#include <linux/time.h>
+#include <linux/posix-timers.h>
+#include <linux/time.h>
 
 #ifdef QRES_MOD_PROFILE
 #  define QOS_PROFILE
@@ -29,11 +29,11 @@
 #include "qsup_gw_ks.h"
 #include "qres_kpi_protected.h"
 
-#include <linux/aquosa/qos_types.h>
-#include <linux/aquosa/qos_memory.h>
-#include <linux/aquosa/qos_func.h>
-#include <linux/aquosa/rres.h>
-#include <linux/aquosa/kal_sched.h>
+#include "qos_types.h"
+#include "qos_memory.h"
+#include "qos_func.h"
+#include "rres.h"
+#include "kal_sched.h"
 
 /** Static QRES constructor  */
 qos_rv qres_init(void) {
@@ -104,7 +104,7 @@ qos_func_define(qos_rv, qres_create_server, qres_params_t *param, qres_sid_t *p_
     qos_log_info("qres_init_server failed: %s", qos_strerror(rv));
     return rv;
   }
-  *p_sid = rres_get_sid(&qres->rres);
+  //*p_sid = rres_get_sid(&qres->rres);
   return QOS_OK;
 }
 
@@ -113,8 +113,8 @@ void qres_update_bandwidths(void) {
   struct list_head *tmp;
   server_t *srv;
   for_each_server(srv, tmp) {
-    qres_time_t q = bw2Q(rres_get_bandwidth(srv), rres_get_period(srv));
-    rres_set_budget(srv, q);
+    //qres_time_t q = bw2Q(rres_get_bandwidth(srv), rres_get_period(srv));
+    //rres_set_budget(srv, q);
   }
 }
 
@@ -189,18 +189,18 @@ qos_func_define(qos_rv, qres_init_server, qres_server_t *qres, qres_params_t *pa
   qres_update_bandwidths();
 
   /** Then, create associated RRES resources            */
-  rv = rres_init_server(&qres->rres, approved_Q,
-                        param->P, param->flags);
-  if (rv != QOS_OK) {
-    qos_log_info("rres_init_server() failed: %s", qos_strerror(rv));
+  //rv = rres_init_server(&qres->rres, approved_Q,
+  //                      param->P, param->flags);
+  //if (rv != QOS_OK) {
+  //  qos_log_info("rres_init_server() failed: %s", qos_strerror(rv));
 #ifdef QRES_ENABLE_QSUP
-    qsup_cleanup_server(&qres->qsup);
+  //  qsup_cleanup_server(&qres->qsup);
 #endif
-    // New incomplete server was not enqueued, so it is safe to loop all servers.
-    // All servers have their bandwidths back like before creation of this server.
-    qres_update_bandwidths();
-    return rv;
-  }
+  //  // New incomplete server was not enqueued, so it is safe to loop all servers.
+  //  // All servers have their bandwidths back like before creation of this server.
+  //  qres_update_bandwidths();
+  //  return rv;
+  //}
 
   qres->owner_uid = uid;
   qres->owner_gid = gid;
@@ -218,12 +218,12 @@ qos_func_define(qos_rv, qres_destroy_server, qres_server_t *qres) {
   struct task_struct *task;
   qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
   while ((task = rres_any_ready_task(&qres->rres)) != NULL) {
-    qos_chk_ok_ret(rres_detach_task(&qres->rres, task));
+    //qos_chk_ok_ret(rres_detach_task(&qres->rres, task));
   }
   while ((task = rres_any_blocked_task(&qres->rres)) != NULL) {
-    qos_chk_ok_ret(rres_detach_task(&qres->rres, task));
+    //qos_chk_ok_ret(rres_detach_task(&qres->rres, task));
   }
-  qos_chk_ok_ret(rres_destroy_server(&qres->rres));
+  //qos_chk_ok_ret(rres_destroy_server(&qres->rres));
   qres = NULL; // Don't use qres pointer from here on
   // No need to rres_schedule() nor to call destructor nor to deallocate -- already done by destroy_server
   return QOS_OK;
@@ -245,11 +245,11 @@ qos_func_define(qos_rv, _qres_cleanup_server, server_t *rres) {
 
   /* Then, reset original parent class vtable	*/
 
-  qres->rres.cleanup = &_rres_cleanup_server;
-  qres->rres.get_bandwidth = &_rres_get_bandwidth;
+  //qres->rres.cleanup = &_rres_cleanup_server;
+  //qres->rres.get_bandwidth = &_rres_get_bandwidth;
 
   /* Finally, destroy parent class		*/
-  qos_chk_ok_ret(_rres_cleanup_server(&qres->rres));
+  //qos_chk_ok_ret(_rres_cleanup_server(&qres->rres));
   return QOS_OK;
 }
 
@@ -260,7 +260,7 @@ qos_bw_t _qres_get_bandwidth(server_t *srv) {
 #ifdef QRES_ENABLE_QSUP
   return qsup_get_approved_bw(&qres->qsup);
 #else
-  return _rres_get_bandwidth(&qres->rres);
+  //return _rres_get_bandwidth(&qres->rres);
 #endif
 }
 
@@ -269,13 +269,13 @@ qos_func_define(qos_rv, qres_attach_task, qres_server_t *qres, struct task_struc
   qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
   if ((! authorize_for_task(tsk)) || (! authorize_for_server(qres)))
     return QOS_E_UNAUTHORIZED;
-  qos_chk_ok_ret(rres_attach_task(&qres->rres, tsk));
+  //qos_chk_ok_ret(rres_attach_task(&qres->rres, tsk));
 
   /* Dynamic reclamation is automatic here, no need to explicitly       *
    * require the QSUP_DYNAMIC_RECLAIM switch !                          */
-  if (rres_has_ready_tasks(&qres->rres)) {
-    qsup_set_required_bw(&qres->qsup, r2bw(qres->params.Q, qres->params.P));
-  }
+  //if (rres_has_ready_tasks(&qres->rres)) {
+  //  qsup_set_required_bw(&qres->qsup, r2bw(qres->params.Q, qres->params.P));
+  //}
 
   return QOS_OK;
 }
@@ -296,15 +296,15 @@ qos_func_define(qos_rv, qres_detach_task, qres_server_t *qres, struct task_struc
     return QOS_E_NOT_FOUND;
   if ((! authorize_for_task(tsk)) || (! authorize_for_server(qres)))
     return QOS_E_UNAUTHORIZED;
-  qos_chk_ok_ret(rres_detach_task(&qres->rres, tsk));
+  //qos_chk_ok_ret(rres_detach_task(&qres->rres, tsk));
 
   /* Dynamic reclamation is automatic here, no need to explicitly       *
    * require the QSUP_DYNAMIC_RECLAIM switch !                          */
-  if (! rres_has_ready_tasks(&qres->rres)) {
-    qsup_set_required_bw(&qres->qsup, 0);
-  }
+  //if (! rres_has_ready_tasks(&qres->rres)) {
+  //  qsup_set_required_bw(&qres->qsup, 0);
+  //}
 
-  qos_chk_ok_ret(rres_check_destroy(&qres->rres));
+  //qos_chk_ok_ret(rres_check_destroy(&qres->rres));
   qres = NULL; // DO NOT USE qres POINTER, FROM HERE ON
   return QOS_OK;
 }
@@ -347,7 +347,7 @@ qos_func_define(qos_rv, qres_set_params, qres_server_t *qres, qres_params_t *par
   approved_Q = param->Q;
 #endif
   qos_log_debug("Required=" QRES_TIME_FMT ", Approved=" QRES_TIME_FMT, param->Q, approved_Q);
-  qos_chk_ok_ret(rres_set_params(&qres->rres, approved_Q, param->P));
+  //qos_chk_ok_ret(rres_set_params(&qres->rres, approved_Q, param->P));
   qres->params = *param;
 
   return QOS_OK;
@@ -377,7 +377,7 @@ qos_func_define(qos_rv, qres_get_deadline, qres_server_t *qres, struct timespec 
 
 qos_func_define(qos_rv, qres_get_exec_abs_time, qres_server_t *qres,
               qres_time_t *exec_time, qres_atime_t *abs_time) {
-  *exec_time = rres_get_exec_time(&qres->rres);
+  //*exec_time = rres_get_exec_time(&qres->rres);
   *abs_time = kal_time2usec(kal_time_now());
   return QOS_OK;
 }

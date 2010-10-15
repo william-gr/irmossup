@@ -9,24 +9,27 @@
  ** latency in reclaiming back the given-away bandwidth when the server activates back).
  **/
 
-#include <linux/aquosa/rres_config.h>
+#include "rres_config.h"
 #include "qres_config.h"
 #define QOS_DEBUG_LEVEL QRES_MOD_DEBUG_LEVEL
-#include <linux/aquosa/qos_debug.h>
+#include "qos_debug.h"
 
 #ifdef QRES_MOD_PROFILE
 #  define QOS_PROFILE
 #endif
-#include <linux/aquosa/qos_prof.h>
+#include "qos_prof.h"
 
 #include "qres_gw_ks.h"
 #include "qsup_gw_ks.h"
 #include "qres_kpi_protected.h"
 
-#include <linux/aquosa/qos_types.h>
-#include <linux/aquosa/qos_memory.h>
-#include <linux/aquosa/qos_func.h>
-#include <linux/aquosa/kal_sched.h>
+#include "qos_types.h"
+#include "qos_memory.h"
+#include "qos_func.h"
+#include "kal_sched.h"
+
+#include "rres_ready_queue.h"
+#include "rres_server.h"
 
 /** Find the thread identified by the caller through <pid, tid>.
  **
@@ -190,7 +193,7 @@ qos_func_define(qos_rv, qres_gw_get_server_id, qres_attach_iparams_t *iparams) {
   if (rres == NULL)
     return QOS_E_NOT_FOUND;
 
-  iparams->server_id = rres_get_sid(rres);
+  //iparams->server_id = rres_get_sid(rres);
 
   return QOS_OK;
 }

@@ -1,6 +1,6 @@
 #include "qres_config.h"
 #define QOS_DEBUG_LEVEL QSUP_MOD_DEBUG_LEVEL
-#include <linux/aquosa/qos_debug.h>
+#include "qos_debug.h"
 
 #include <linux/kernel.h>	/* We're doing kernel work */
 #include <linux/version.h>	/* For KERNEL_VERSION macro */
@@ -12,10 +12,10 @@
 #include "qsup_mod.h"
 #include "qres_gw_ks.h"
 #include "qsup_gw_ks.h"
-#include <linux/aquosa/qos_kernel_dep.h>
-#include <linux/aquosa/rres_interface.h>
+#include "qos_kernel_dep.h"
+#include "rres_interface.h"
 
-#include <linux/aquosa/rres_proc_fs.h>
+#include "rres_proc_fs.h"
 
 #define SUCCESS 0
 #define BUF_LEN 80

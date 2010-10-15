@@ -5,17 +5,17 @@
 #include <linux/init.h>
 #include <linux/errno.h>
 #include <linux/mm.h>
-#include <linux/devfs_fs_kernel.h>
+//#include <linux/devfs_fs_kernel.h>
 #include <linux/mmtimer.h>
 #include <linux/miscdevice.h>
 #include <linux/posix-timers.h>
 #include <linux/interrupt.h>
-#include <linux/config.h>
+//#include <linux/config.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/spinlock.h>
 
-#include <linux/aquosa/qos_debug.h>
+#include "qos_debug.h"
 
 pid_t timer_thread_pid;
 struct task_struct *p_timer_thread_ts = 0;

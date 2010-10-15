@@ -5,7 +5,7 @@
 
 #include "qres_config.h"
 #define QOS_DEBUG_LEVEL QRES_MOD_DEBUG_LEVEL
-#include <linux/aquosa/qos_debug.h>
+#include "qos_debug.h"
 
 #ifdef CONFIG_OC_QRES_PROC
 #include <linux/kernel.h>
@@ -13,7 +13,7 @@
 #include <linux/ctype.h> //for numeric conversion
 #include <stdarg.h>
 
-#include <linux/aquosa/rres_proc_fs.h>
+#include "rres_proc_fs.h"
 
 extern struct proc_dir_entry proc_root;           /**< pointer to linux proc file-system root */
 
