@@ -21,6 +21,7 @@ pid_t timer_thread_pid;
 struct task_struct *p_timer_thread_ts = 0;
 
 extern int force_ksoftirqd;
+EXPORT_SYMBOL_GPL(force_ksoftirqd);
 
 struct k_itimer timer;
 
@@ -64,9 +65,9 @@ int timer_thread(void *_c)
   qos_log_crit("timer_thread(): forcing execution of softirqs outside interrupt context");
   force_ksoftirqd = 1;
 
-  rv = do_setitimer(ITIMER_REAL, &itv, NULL);
-  qos_log_crit("timer_thread(): do_setitimer() returned: %d", rv);
-  if (rv != 0)
+  //rv = do_setitimer(ITIMER_REAL, &itv, NULL);
+  //qos_log_crit("timer_thread(): do_setitimer() returned: %d", rv);
+  //if (rv != 0)
     goto die;
   spin_lock_init(&timer.it_lock);
   spin_lock_irqsave(&timer.it_lock, flags);

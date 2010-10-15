@@ -42,8 +42,8 @@ static qos_rv find_task(pid_t pid, tid_t tid, struct task_struct **p_ptsk) {
   if ((tid == 0) || (tid == current->pid)) {
     *p_ptsk = current;
   } else {
-    *p_ptsk = kal_find_task_by_pid(tid);
-    if (*p_ptsk == 0)
+    //*p_ptsk = kal_find_task_by_pid(tid);
+    //if (*p_ptsk == 0)
       return QOS_E_INVALID_PARAM;
   }
   return QOS_OK;

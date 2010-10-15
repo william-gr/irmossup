@@ -299,15 +299,15 @@ static int qres_init_module(void) {
    * already able to accept ioctl requests. Furthermore, spinlocks
    * cannot be held because it might sleep.
    */
-  if (qos_dev_register(&qres_dev_info, QRES_DEV_NAME, QRES_MAJOR_NUM, &Fops) != QOS_OK) {
-    qos_log_crit("Registration of device %s failed", QRES_DEV_NAME);
-  } else {
-    qos_log_info("Registered QRES device with major device number %d.", MAJOR(qres_dev_info.dev_num));
-    qos_log_info("If you want to talk to the device driver,");
-    qos_log_info("you'll have to create a device file. ");
-    qos_log_info("We suggest you use:");
-    qos_log_info("mknod %s c %d 0", QRES_DEV_NAME, MAJOR(qres_dev_info.dev_num));
-  }
+  //if (qos_dev_register(&qres_dev_info, QRES_DEV_NAME, QRES_MAJOR_NUM, &Fops) != QOS_OK) {
+  //  qos_log_crit("Registration of device %s failed", QRES_DEV_NAME);
+  //} else {
+  //  qos_log_info("Registered QRES device with major device number %d.", MAJOR(qres_dev_info.dev_num));
+  //  qos_log_info("If you want to talk to the device driver,");
+  //  qos_log_info("you'll have to create a device file. ");
+  //  qos_log_info("We suggest you use:");
+  //  qos_log_info("mknod %s c %d 0", QRES_DEV_NAME, MAJOR(qres_dev_info.dev_num));
+  //}
 
   qsup_dev_register();
 
@@ -333,7 +333,7 @@ static void qres_cleanup_module(void) {
   /*
    * Unregister the device
    */
-  qos_dev_unregister(&qres_dev_info);
+  //qos_dev_unregister(&qres_dev_info);
   qsup_dev_unregister();
 
   kal_spin_lock_irqsave(rres_get_spinlock(), &flags);

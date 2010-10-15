@@ -188,10 +188,11 @@ static inline struct task_struct *rres_any_blocked_task(server_t * srv) {
   //return tl->task;
 }
 
-extern spinlock_t rres_lock;
+//extern spinlock_t rres_lock;
 
 static inline kal_lock_t *rres_get_spinlock(void) {
-  return &rres_lock;
+  //return &rres_lock;
+  return NULL;
 }
 
 #endif /* __RRES_INTERFACE_H__ */

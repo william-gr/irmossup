@@ -123,10 +123,10 @@ static qos_dev_info_t qsup_dev_info;
  **/
 qos_rv qsup_dev_register(void) {
   qos_rv rv;
-  if ((rv = qos_dev_register(&qsup_dev_info, QSUP_DEV_NAME, QSUP_MAJOR_NUM, &qsup_Fops)) != QOS_OK) {
-    qos_log_err("Registration of device %s failed", QSUP_DEV_NAME);
-    return rv;
-  }
+  //if ((rv = qos_dev_register(&qsup_dev_info, QSUP_DEV_NAME, QSUP_MAJOR_NUM, &qsup_Fops)) != QOS_OK) {
+  //  qos_log_err("Registration of device %s failed", QSUP_DEV_NAME);
+  //  return rv;
+  //}
 
   qos_log_info("Registered QSUP device with major device number %d.", MAJOR(qsup_dev_info.dev_num));
   qos_log_info("If you want to talk to the device driver,");
@@ -165,7 +165,7 @@ int qsup_init_module(void) {
  ** Unregister the device 
  **/
 qos_rv qsup_dev_unregister(void) {
-  return qos_dev_unregister(&qsup_dev_info);
+  //return qos_dev_unregister(&qsup_dev_info);
 }
 
 /** 
@@ -207,7 +207,8 @@ static int rres_read_qsup(char *page, char **start, off_t off, int count,
   PROC_PRINT_END;
 }
 
-extern struct proc_dir_entry *qres_proc_root;
+//extern struct proc_dir_entry *qres_proc_root;
+EXPORT_SYMBOL_GPL(qres_proc_root);
 
 int qsup_register_proc(void) {
   struct proc_dir_entry *proc_sched_ent;
