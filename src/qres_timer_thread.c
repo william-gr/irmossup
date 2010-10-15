@@ -20,8 +20,8 @@
 pid_t timer_thread_pid;
 struct task_struct *p_timer_thread_ts = 0;
 
-extern int force_ksoftirqd;
-EXPORT_SYMBOL_GPL(force_ksoftirqd);
+//extern int force_ksoftirqd;
+int force_ksoftirqd;
 
 struct k_itimer timer;
 

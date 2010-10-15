@@ -23,7 +23,8 @@
 struct kal_timer_t;
 
 extern spinlock_t generic_scheduler_lock __cacheline_aligned; /**< used for spinlock on hook handlers and timer handler */
-extern struct list_head server_list;    /**< list of the servers */
+//extern struct list_head server_list;    /**< list of the servers */
+struct list_head server_list;    /**< list of the servers */
 extern kal_time_t last_update_time;   /**< time of last budget updating */
 #ifdef CONFIG_RRES_DEFAULT_SRV
 extern server_t *default_srv;           /**< default_srv server */

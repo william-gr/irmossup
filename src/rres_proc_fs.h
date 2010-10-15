@@ -106,9 +106,7 @@ int rres_proc_register(void);
 void rres_proc_unregister(void);
 
 /** pointer to qres proc_fs root directory (/proc/qres) */
-extern struct proc_dir_entry *qres_proc_root;
-//struct proc_dir_entry *qres_proc_root;
-//EXPORT_SYMBOL_GPL(qres_proc_root);
+static struct proc_dir_entry *qres_proc_root;
 
 #endif  //  _RRES_PROC_FS_H_
 
