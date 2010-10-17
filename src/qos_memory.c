@@ -1,5 +1,4 @@
 #include "rres_config.h"
-#define QOS_DEBUG_LEVEL QOS_LEVEL_INFO
 #include "qos_debug.h"
 
 #if defined(QOS_KS)

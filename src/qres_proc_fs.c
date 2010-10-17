@@ -4,7 +4,7 @@
  */ 
 
 #include "qres_config.h"
-#define QOS_DEBUG_LEVEL QRES_MOD_DEBUG_LEVEL
+//#define QOS_DEBUG_LEVEL QRES_MOD_DEBUG_LEVEL
 #include "qos_debug.h"
 
 #ifdef CONFIG_OC_QRES_PROC

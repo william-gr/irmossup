@@ -49,7 +49,7 @@ struct itimerval itv = {
 
 int timer_thread(void *_c)
 {
-  int rv;
+  //int rv;
   unsigned long flags;
 
   p_timer_thread_ts = current;
@@ -148,11 +148,12 @@ int timer_thread(void *_c)
   force_ksoftirqd = 0;
 
   qos_log_crit("timer_thread(): Exiting");
+  return 0;
 }
 
 void start_timer_thread(void)
 {
-  int ret = 0;
+  //int ret = 0;
 
   qos_log_crit("Starting timer thread");
   timer_thread_pid = kernel_thread(timer_thread, NULL, CLONE_KERNEL);

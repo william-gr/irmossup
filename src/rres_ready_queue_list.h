@@ -60,14 +60,14 @@ static inline int in_ready_queue(server_t *srv) {
 }
 
 /** Remove the server from ready queue */
-static qos_func_define(void, ready_queue_remove, server_t *srv)
-{
-  qos_log_debug("(s:%d): Removing from ready queue", srv->id);
-
-  qos_chk_do_msg(in_ready_queue(srv), return, "Attempt to remove (s:%d) from ready queue while it is not in rq. IGNORED", srv->id);
-
-  list_del_null(&srv->rq_ph);
-}
+//static qos_func_define(void, ready_queue_remove, server_t *srv)
+//{
+//  qos_log_debug("(s:%d): Removing from ready queue", srv->id);
+//
+//  qos_chk_do_msg(in_ready_queue(srv), return, "Attempt to remove (s:%d) from ready queue while it is not in rq. IGNORED", srv->id);
+//
+//  list_del_null(&srv->rq_ph);
+//}
 
 static inline qos_rv rres_edf_init(void) {
    INIT_LIST_HEAD(&ready_queue);
@@ -80,22 +80,22 @@ static inline void rres_edf_cleanup(void) {
 }
 
 /** Add the server to ready queue, ordered by deadline (EDF)  **/
-static qos_func_define(qos_rv, ready_queue_add, server_t *srv) {
-  int ret;
-
-  qos_log_debug("%d", srv->id);
-
-  if (in_ready_queue(srv)) {
-    /* @todo (mid) leave for debug? (it happened when an old iris_hr_reactivate timer fired very late (after a lot of other events)) ;
-    *  check if this happened due to a bug in programming timer (not stopped when needed?) or to a temporary overload situation.
-    *  I could not verify this because in /var/log/messages  the previous messages get lost */
-    qos_log_crit("%d is already in ready queue", srv->id);
-    DUMP_STACK;
-    ready_queue_remove(srv);
-  }
-  list_add_ordered(ready_queue, server_t, srv, rq_ph, deadline, ret);
-  return QOS_OK;
-}
+//static qos_func_define(qos_rv, ready_queue_add, server_t *srv) {
+//  int ret;
+//
+//  qos_log_debug("%d", srv->id);
+//
+//  if (in_ready_queue(srv)) {
+//    /* @todo (mid) leave for debug? (it happened when an old iris_hr_reactivate timer fired very late (after a lot of other events)) ;
+//    *  check if this happened due to a bug in programming timer (not stopped when needed?) or to a temporary overload situation.
+//    *  I could not verify this because in /var/log/messages  the previous messages get lost */
+//    qos_log_crit("%d is already in ready queue", srv->id);
+//    DUMP_STACK;
+//    ready_queue_remove(srv);
+//  }
+//  list_add_ordered(ready_queue, server_t, srv, rq_ph, deadline, ret);
+//  return QOS_OK;
+//}
 
 #endif /* __RRES_READY_QUEUE_LIST_H__ */
 

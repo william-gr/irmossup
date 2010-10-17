@@ -1,5 +1,5 @@
 #include "qres_config.h"
-#define QOS_DEBUG_LEVEL QSUP_MOD_DEBUG_LEVEL
+//#define QOS_DEBUG_LEVEL QSUP_MOD_DEBUG_LEVEL
 #include "qos_debug.h"
 
 #ifdef PROF_QSUP_MOD

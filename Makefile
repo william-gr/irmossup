@@ -4,7 +4,7 @@ src/qres_mod-y = src/qres.o src/qsup.o src/qres_gw_ks.o src/qres_proc_fs.o src/q
 
 KBUILD_VERBOSE = 1
 MODULE_EXT    := ko
-KFLAGS   := -D__KERNEL__ -DMODULE -DQOS_KS
+KFLAGS   := -D__KERNEL__ -DMODULE -DQOS_KS -DQOS_DEBUG_LEVEL=8
 #WARN    := -W -Wall -Wstrict-prototypes -Wmissing-prototypes
 INCLUDE := -isystem /lib/modules/`uname -r`/build/include
 EXTRA_CFLAGS  := -O2 ${KFLAGS} ${WARN} ${INCLUDE}

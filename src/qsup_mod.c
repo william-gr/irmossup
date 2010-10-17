@@ -1,5 +1,4 @@
 #include "qres_config.h"
-#define QOS_DEBUG_LEVEL QSUP_MOD_DEBUG_LEVEL
 #include "qos_debug.h"
 
 #include <linux/kernel.h>	/* We're doing kernel work */
