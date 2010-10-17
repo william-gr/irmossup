@@ -68,7 +68,6 @@ typedef struct __qos_rv { } *qos_rv;
 #define QOS_E_NOSERVER QOS_E_NOT_FOUND
 
 /** @} */
-#define QOS_KS
 #ifdef QOS_KS
 //#  include <linux/autoconf.h>
 #  include <linux/kernel.h>
