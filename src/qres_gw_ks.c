@@ -36,7 +36,8 @@
  ** The caller thread may refer to itself as <0, 0>.
  **/
 static qos_rv find_task(pid_t pid, tid_t tid, struct task_struct **p_ptsk) {
-  qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
+  // *** IMPORTANTE TO DO FOLLOW
+  //qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
   if (pid != 0 && tid == 0)
     return QOS_E_INVALID_PARAM;
   if ((tid == 0) || (tid == current->pid)) {
@@ -75,9 +76,9 @@ static qos_rv find_task(pid_t pid, tid_t tid, struct task_struct **p_ptsk) {
 #define call_sync(func) ({					\
   kal_irq_state flags;						\
   qos_rv __rv;							\
-  kal_spin_lock_irqsave(rres_get_spinlock(), &flags);		\
+/*  kal_spin_lock_irqsave(rres_get_spinlock(), &flags); */  \
   __rv = (func);						\
-  kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);	\
+/*  kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags); */  \
   __rv;								\
 })
 

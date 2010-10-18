@@ -274,7 +274,6 @@ static int qres_init_module(void) {
 
   //kal_spin_lock_irqsave(rres_get_spinlock(), &flags);
 
-printk(KERN_INFO "initing qusp.\n");
   qres_init();
   qos_log_debug("Initing QSUP");
   if ((rv = qsup_init_ks()) != QOS_OK) {
@@ -340,7 +339,7 @@ static void qres_cleanup_module(void) {
   /*
    * Unregister the device
    */
-  //qos_dev_unregister(&qres_dev_info);
+  qos_dev_unregister(&qres_dev_info);
   qsup_dev_unregister();
 
   //kal_spin_lock_irqsave(rres_get_spinlock(), &flags);

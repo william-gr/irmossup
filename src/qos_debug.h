@@ -147,10 +147,10 @@ do {								\
   int __level = (level);					\
   if (__level <= QOS_DEBUG_LEVEL && __level <= QOS_GLOBAL_LEVEL) {  \
     debug_print(DBG_LEV DBG_DEV DBG_TIME_FORMAT				\
-		"[%6d]" "[%.24s%*s]" str " %.*s" msg "\n",	\
+		"[%4d]" "[%.20s%*s]" str " %.*s" msg "\n",	\
 		DBG_TIME					\
 		atomic_inc_return(&qos_log_msg_id), __func__,	\
-		24-_min(24, (int)sizeof(__func__)-1), "",	\
+		20-_min(20, (int)sizeof(__func__)-1), "",	\
 		2*indent_lev, pad, ##args);			\
     QOS_FFLUSH;							\
   }								\

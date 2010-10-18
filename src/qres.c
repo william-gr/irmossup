@@ -50,7 +50,8 @@ qos_rv qres_cleanup(void) {
   server_t *srv;
   struct list_head *tmp, *tmpdel;
 
-  qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
+  // ** IMPORTANT DO FOLLOWING LINE
+  //qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
 
   /* Destroy all servers, including the default one, if configured. */
   for_each_server_safe(srv, tmp, tmpdel) {
@@ -93,7 +94,7 @@ qos_func_define(qos_rv, qres_create_server, qres_params_t *param, qres_sid_t *p_
   qres_server_t *qres;
   qos_rv rv;
 
-  qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
+  //qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
   qos_log_debug("q=" QRES_TIME_FMT ", q_min=" QRES_TIME_FMT ", p=" QRES_TIME_FMT ", flags=%d",
       param->Q, param->Q_min, param->P, param->flags);
   qres = qos_create(qres_server_t);
@@ -127,7 +128,7 @@ qos_func_define(qos_rv, qres_init_server, qres_server_t *qres, qres_params_t *pa
   kal_uid_t uid;
   kal_gid_t gid;
 
-  qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
+  //qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
   qos_log_debug("(Q, P): (" QRES_TIME_FMT ", " QRES_TIME_FMT ")", param->Q, param->P);
   if (param->P < MIN_SRV_PERIOD || param->Q > param->P)
     return QOS_E_INVALID_PARAM;
@@ -216,7 +217,7 @@ qos_func_define(qos_rv, qres_init_server, qres_server_t *qres, qres_params_t *pa
 
 qos_func_define(qos_rv, qres_destroy_server, qres_server_t *qres) {
   struct task_struct *task;
-  qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
+  //qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
   while ((task = rres_any_ready_task(&qres->rres)) != NULL) {
     //qos_chk_ok_ret(rres_detach_task(&qres->rres, task));
   }
@@ -233,7 +234,7 @@ qos_func_define(qos_rv, qres_destroy_server, qres_server_t *qres) {
 qos_func_define(qos_rv, _qres_cleanup_server, server_t *rres) {
   qres_server_t *qres = qres_find_by_rres(rres);
 
-  qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
+  //qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
   if (! authorize_for_server(qres))
     return QOS_E_UNAUTHORIZED;
 
@@ -266,7 +267,7 @@ qos_bw_t _qres_get_bandwidth(server_t *srv) {
 
 /** Attach to the server identified by srv_id the task identified by tsk */
 qos_func_define(qos_rv, qres_attach_task, qres_server_t *qres, struct task_struct *tsk) {
-  qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
+  //qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
   if ((! authorize_for_task(tsk)) || (! authorize_for_server(qres)))
     return QOS_E_UNAUTHORIZED;
   //qos_chk_ok_ret(rres_attach_task(&qres->rres, tsk));
@@ -291,7 +292,7 @@ qos_func_define(qos_rv, qres_attach_task, qres_server_t *qres, struct task_struc
  * could have been deallocated.
  */
 qos_func_define(qos_rv, qres_detach_task, qres_server_t *qres, struct task_struct *tsk) {
-  qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
+  //qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
   if (qres == NULL)
     return QOS_E_NOT_FOUND;
   if ((! authorize_for_task(tsk)) || (! authorize_for_server(qres)))
@@ -313,7 +314,7 @@ qos_func_define(qos_rv, qres_detach_task, qres_server_t *qres, struct task_struc
 qos_func_define(qos_rv, qres_set_params, qres_server_t *qres, qres_params_t *param) {
   qres_time_t approved_Q;
 
-  qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
+  //qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
   qos_log_debug("Q=" QRES_TIME_FMT "  Q_min=" QRES_TIME_FMT "  P=" QRES_TIME_FMT,
 		param->Q, param->Q_min, param->P);
 
@@ -354,7 +355,7 @@ qos_func_define(qos_rv, qres_set_params, qres_server_t *qres, qres_params_t *par
 }
 
 qos_func_define(qos_rv, qres_get_params, qres_server_t *qres, qres_params_t *params) {
-  qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
+  //qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
   *params = qres->params;
   return QOS_OK;
 }
