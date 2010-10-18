@@ -2,6 +2,11 @@
  ** @brief QRES kernel module and device initialisation and cleanup.
  **/
 
+#include <linux/kernel.h>       /* We're doing kernel work */
+#include <linux/version.h>      /* For KERNEL_VERSION macro */
+#include <linux/module.h>       /* Specifically, a module */
+#include <linux/init.h>       /* Specifically, a module */
+
 #include "qres_config.h"
 //#define QOS_DEBUG_LEVEL QRES_MOD_DEBUG_LEVEL
 #include "qos_debug.h"
@@ -206,7 +211,7 @@ void qres_block_hook(struct task_struct *t) {
   server_t *rres;
 
   old_block_hook(t);
-  kal_spin_lock_irqsave(rres_get_spinlock(), &flags);
+  //kal_spin_lock_irqsave(rres_get_spinlock(), &flags);
   //rres = rres_find_by_task(t);
   //if (rres && ! rres_has_ready_tasks(rres)) {
   //  qres_server_t *qres = qres_find_by_rres(rres);
@@ -223,13 +228,13 @@ void qres_unblock_hook(struct task_struct *t, long old_state) {
   server_t *rres;
 
   old_unblock_hook(t, old_state);
-  kal_spin_lock_irqsave(rres_get_spinlock(), &flags);
-  rres = rres_find_by_task(t);
+  //kal_spin_lock_irqsave(rres_get_spinlock(), &flags);
+  //rres = rres_find_by_task(t);
   //if (rres && rres_has_ready_tasks(rres)) {
   //  qres_server_t *qres = qres_find_by_rres(rres);
   //  qsup_set_required_bw(&qres->qsup, r2bw(qres->params.Q, qres->params.P));
   //}
-  kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);
+  //kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);
 }
 
 void qres_stop_hook(struct task_struct *t) {
@@ -237,37 +242,39 @@ void qres_stop_hook(struct task_struct *t) {
   server_t *rres;
 
   old_stop_hook(t);
-  kal_spin_lock_irqsave(rres_get_spinlock(), &flags);
-  rres = rres_find_by_task(t);
+  //kal_spin_lock_irqsave(rres_get_spinlock(), &flags);
+  //rres = rres_find_by_task(t);
   //if (rres && ! rres_has_ready_tasks(rres)) {
   //  qres_server_t *qres = qres_find_by_rres(rres);
   //  qsup_set_required_bw(&qres->qsup, 0);
   //}
-  kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);
+  //kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);
 }
 
 void qres_continue_hook(struct task_struct *t, long old_state) {
   kal_irq_state flags;
   server_t *rres;
 
-  old_continue_hook(t, old_state);
-  kal_spin_lock_irqsave(rres_get_spinlock(), &flags);
-  rres = rres_find_by_task(t);
+  //old_continue_hook(t, old_state);
+  //kal_spin_lock_irqsave(rres_get_spinlock(), &flags);
+  //rres = rres_find_by_task(t);
   //if (rres && rres_has_ready_tasks(rres)) {
   //  qres_server_t *qres = qres_find_by_rres(rres);
   //  qsup_set_required_bw(&qres->qsup, r2bw(qres->params.Q, qres->params.P));
   //}
-  kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);
+  //kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);
 }
 #endif
 
 /** Initialize the module - Register the character device	*/
 static int qres_init_module(void) {
+
   qos_rv rv;
   kal_irq_state flags;
 
-  kal_spin_lock_irqsave(rres_get_spinlock(), &flags);
+  //kal_spin_lock_irqsave(rres_get_spinlock(), &flags);
 
+printk(KERN_INFO "initing qusp.\n");
   qres_init();
   qos_log_debug("Initing QSUP");
   if ((rv = qsup_init_ks()) != QOS_OK) {
@@ -293,7 +300,7 @@ static int qres_init_module(void) {
 
   qos_log_debug("qres module initialization finished");
 
-  kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);
+  //kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);
 
   /* Device registration should be done when kernel module is
    * already able to accept ioctl requests. Furthermore, spinlocks
@@ -319,7 +326,7 @@ static int qres_init_module(void) {
 
  err:
 
-  kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);
+  //kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);
   return -1;
 }
 
@@ -336,7 +343,7 @@ static void qres_cleanup_module(void) {
   //qos_dev_unregister(&qres_dev_info);
   qsup_dev_unregister();
 
-  kal_spin_lock_irqsave(rres_get_spinlock(), &flags);
+  //kal_spin_lock_irqsave(rres_get_spinlock(), &flags);
 
 #ifdef QSUP_DYNAMIC_RECLAIM
   write_lock(&hook_lock);
@@ -359,13 +366,14 @@ static void qres_cleanup_module(void) {
 
  err:
 
-  kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);
+	return;
+  //kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);
 }
 
 module_init(qres_init_module);
 module_exit(qres_cleanup_module);
 
-MODULE_LICENSE("GPL");
 MODULE_AUTHOR("ReTiS Lab");
 MODULE_DESCRIPTION("AQuoSA Resource Reservation - Support for user-space library and supervisor");
 MODULE_SUPPORTED_DEVICE("qosres");
+MODULE_LICENSE("GPL");
