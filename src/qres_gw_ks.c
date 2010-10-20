@@ -93,8 +93,13 @@ qos_func_define(qos_rv, qres_gw_attach_task, qres_attach_iparams_t *iparams) {
   qres_server_t *qres;
   struct task_struct *tsk;
 
+  tsk = NULL;
+  qres = NULL;
+
+  qos_log_info("Looking for task with pid %d, tid %d and srvid %d", iparams->pid, iparams->tid, iparams->server_id);
   qos_chk_ok_ret(find_task(iparams->pid, iparams->tid, &tsk));
   qres = qres_find_by_id(iparams->server_id);
+  qos_log_debug("Task found: %d - Qres found: %d", (int)tsk, (int)qres);
   if (qres == NULL)
     return QOS_E_NOT_FOUND;
   return qres_attach_task(qres, tsk);

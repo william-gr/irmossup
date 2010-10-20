@@ -168,10 +168,15 @@ kal_uid_t qres_get_owner_uid(qres_server_t *qres);
  */
 kal_gid_t qres_get_owner_gid(qres_server_t *qres);
 
+qres_sid_t new_server_id(void);
+server_t* rres_find_by_id(qres_sid_t sid);
+
 static inline qres_server_t * qres_find_by_id(qres_sid_t sid) {
-  //return qres_find_by_rres(rres_find_by_id(sid));
+  return qres_find_by_rres(rres_find_by_id(sid));
   return NULL;
 }
+
+extern qres_sid_t server_id;
 
 /** @} */
 

@@ -38,6 +38,8 @@
 #include "rres.h"
 #include "kal_sched.h"
 
+qres_sid_t server_id = 1;
+
 /** Static QRES constructor  */
 qos_rv qres_init(void) {
   // compile-time check, run-time error at module insertion
@@ -110,7 +112,7 @@ qos_func_define(qos_rv, qres_create_server, qres_params_t *param, qres_sid_t *p_
     qos_log_info("qres_init_server failed: %s", qos_strerror(rv));
     return rv;
   }
-  //*p_sid = rres_get_sid(&qres->rres);
+  *p_sid = qres->rres.id;
   return QOS_OK;
 }
 
@@ -211,6 +213,9 @@ qos_func_define(qos_rv, qres_init_server, qres_server_t *qres, qres_params_t *pa
   }
   qres->qsup.tg = tg;
 
+  sched_group_set_rt_period(qres->qsup.tg, 0, param->P);
+  sched_group_set_rt_runtime(qres->qsup.tg, 0, approved_Q);
+
   /** Then, create associated RRES resources            */
   //rv = rres_init_server(&qres->rres, approved_Q,
   //                      param->P, param->flags);
@@ -234,23 +239,58 @@ qos_func_define(qos_rv, qres_init_server, qres_server_t *qres, qres_params_t *pa
   ///* Override parent class vtable */
   //qres->rres.cleanup = &_qres_cleanup_server;
   //qres->rres.get_bandwidth = &_qres_get_bandwidth;
+  qres->rres.id = new_server_id();
 
   return QOS_OK;
 }
 
+/** Allocate a new server identifier    **/
+qres_sid_t new_server_id(void) {
+  while (server_id == QRES_SID_NULL || rres_find_by_id(server_id) != NULL) {
+    qos_log_debug("Skipping sid (s:%d) already in use", server_id);
+    ++server_id;
+  }
+  return server_id;
+}
+
+
+/** Return the pointer to the server with the specified server id, or
+ ** NULL if not found.
+ **
+ ** @todo
+ ** Speed-up in case of many servers, by using a hashmap
+ **/
+server_t* rres_find_by_id(qres_sid_t sid) {
+  struct list_head *tmp_list;
+  server_t *srv;
+  if (sid == QRES_SID_NULL)
+    return rres_find_by_task(kal_task_current());
+  for_each_server(srv, tmp_list) {
+    if (srv->id == sid)
+      return srv;
+  }
+  return NULL;
+}
+
 qos_func_define(qos_rv, qres_destroy_server, qres_server_t *qres) {
   struct task_struct *task;
+
   //qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
-  while ((task = rres_any_ready_task(&qres->rres)) != NULL) {
+  //while ((task = rres_any_ready_task(&qres->rres)) != NULL) {
     //qos_chk_ok_ret(rres_detach_task(&qres->rres, task));
-  }
-  while ((task = rres_any_blocked_task(&qres->rres)) != NULL) {
+  //}
+  //while ((task = rres_any_blocked_task(&qres->rres)) != NULL) {
     //qos_chk_ok_ret(rres_detach_task(&qres->rres, task));
-  }
+  //}
+
+  /* Would we need to hold some lock? */
+  sched_destroy_group(qres->qsup.tg);
+
   //qos_chk_ok_ret(rres_destroy_server(&qres->rres));
   qres = NULL; // Don't use qres pointer from here on
-  // No need to rres_schedule() nor to call destructor nor to deallocate -- already done by destroy_server
+
   return QOS_OK;
+
 }
 
 /** Non-virtual QRES server destructor  */
