@@ -8,7 +8,7 @@ MODULE_EXT    := ko
 KFLAGS   := -DQOS_KS -DQOS_DEBUG_LEVEL=8
 #WARN    := -W -Wall -Wstrict-prototypes -Wmissing-prototypes
 INCLUDE := -isystem /lib/modules/`uname -r`/build/include
-EXTRA_CFLAGS  := -O2 -g ${KFLAGS} ${WARN} ${INCLUDE}
+EXTRA_CFLAGS  := -O0 -g ${KFLAGS} ${WARN} ${INCLUDE}
 
 KDIR	:= /lib/modules/$(shell uname -r)/build
 PWD		:= $(shell pwd)

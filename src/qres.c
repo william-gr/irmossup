@@ -19,6 +19,9 @@
 #include "qos_debug.h"
 #include <linux/posix-timers.h>
 #include <linux/time.h>
+#include <linux/cgroup.h>
+#include <linux/err.h>
+#include <linux/sched.h>
 
 #ifdef QRES_MOD_PROFILE
 #  define QOS_PROFILE
@@ -38,6 +41,8 @@
 /** Static QRES constructor  */
 qos_rv qres_init(void) {
   // compile-time check, run-time error at module insertion
+
+  INIT_LIST_HEAD(&server_list);
   if (offsetof(qres_server_t, rres) != 0) {
     qos_log_crit("Please, ensure qres_server_t.rres field has a null offset");
     return QOS_E_INTERNAL_ERROR;
@@ -189,6 +194,23 @@ qos_func_define(qos_rv, qres_init_server, qres_server_t *qres, qres_params_t *pa
   // All servers get possibly reduced bandwidths due to the presence of the new server.
   qres_update_bandwidths();
 
+  /* Then, we create the cgroup for this reservation */
+  qos_log_debug("Creating a new cgroup reservation");
+  struct task_group *tg = sched_create_group(&init_task_group);
+  if (IS_ERR(tg)) {
+
+    qos_log_info("sched_create_group() failed: %s", qos_strerror(rv));
+#ifdef QRES_ENABLE_QSUP
+    qsup_cleanup_server(&qres->qsup);
+#endif
+    // New incomplete server was not enqueued, so it is safe to loop all servers.
+    // All servers have their bandwidths back like before creation of this server.
+    qres_update_bandwidths();
+    return rv;
+
+  }
+  qres->qsup.tg = tg;
+
   /** Then, create associated RRES resources            */
   //rv = rres_init_server(&qres->rres, approved_Q,
   //                      param->P, param->flags);
@@ -202,15 +224,16 @@ qos_func_define(qos_rv, qres_init_server, qres_server_t *qres, qres_params_t *pa
   //  qres_update_bandwidths();
   //  return rv;
   //}
+  qos_log_debug("Done creating a new cgroup reservation");
 
   qres->owner_uid = uid;
   qres->owner_gid = gid;
 
   qres->params = *param;
 
-  /* Override parent class vtable */
-  qres->rres.cleanup = &_qres_cleanup_server;
-  qres->rres.get_bandwidth = &_qres_get_bandwidth;
+  ///* Override parent class vtable */
+  //qres->rres.cleanup = &_qres_cleanup_server;
+  //qres->rres.get_bandwidth = &_qres_get_bandwidth;
 
   return QOS_OK;
 }

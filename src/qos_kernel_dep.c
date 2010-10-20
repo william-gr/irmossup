@@ -38,7 +38,8 @@ int qos_dev_register(
 int qos_dev_unregister(qos_dev_info_t *dev_info) {
   int ret;
 
-  ret = unregister_chrdev(MAJOR(dev_info->dev_num), dev_info->dev_name);
+  //ret = unregister_chrdev(MAJOR(dev_info->dev_num), dev_info->dev_name);
+  ret = unregister_chrdev(dev_info->dev_num, dev_info->dev_name);
   if (ret < 0) {
     qos_log_crit("Error in module_unregister_chrdev: %d\n", ret);
     return QOS_E_GENERIC;

@@ -23,6 +23,7 @@
 #include "qres_gw.h"
 #include "qos_debug.h"
 #include "qos_types.h"
+#include <linux/cgroup.h>
 
 /** Level rule: applies to all servers within level	*/
 typedef struct qsup_level_rule_t {
@@ -57,6 +58,7 @@ typedef struct qsup_server_t {
   int uid, gid;		/**< UID and GID of this server		*/
 
   /* Dynamically changing data */
+  struct task_group *tg;
   qos_bw_t req_bw;	/**< Non-guaranteed required bandwidth		*/
   qos_bw_t used_gua_bw;	/**< Current guaranteed bandwidth to the server	*/
   qos_bw_t *p_level_sum;	/**< Total approved for level	*/
