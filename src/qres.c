@@ -135,6 +135,7 @@ qos_func_define(qos_rv, qres_init_server, qres_server_t *qres, qres_params_t *pa
   qos_bw_t bw_req;
   kal_uid_t uid;
   kal_gid_t gid;
+  int rv_sched;
 
   //qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
   qos_log_debug("(Q, P): (" QRES_TIME_FMT ", " QRES_TIME_FMT ")", param->Q, param->P);
@@ -214,8 +215,10 @@ qos_func_define(qos_rv, qres_init_server, qres_server_t *qres, qres_params_t *pa
   }
   qres->qsup.tg = tg;
 
-  sched_group_set_rt_period(qres->qsup.tg, 0, param->P);
-  sched_group_set_rt_runtime(qres->qsup.tg, 0, approved_Q);
+  rv_sched = sched_group_set_rt_period(qres->qsup.tg, 0, param->P);
+  qos_log_debug("Set rt period return value: %d", rv_sched);
+  rv_sched = sched_group_set_rt_runtime(qres->qsup.tg, 0, approved_Q);
+  qos_log_debug("Set rt runtime return value: %d", rv_sched);
 
   /** Then, create associated RRES resources            */
   //rv = rres_init_server(&qres->rres, approved_Q,
@@ -238,8 +241,8 @@ qos_func_define(qos_rv, qres_init_server, qres_server_t *qres, qres_params_t *pa
   qres->params = *param;
 
   ///* Override parent class vtable */
-  //qres->rres.cleanup = &_qres_cleanup_server;
-  //qres->rres.get_bandwidth = &_qres_get_bandwidth;
+  qres->rres.cleanup = &_qres_cleanup_server;
+  qres->rres.get_bandwidth = &_qres_get_bandwidth;
   qres->rres.id = new_server_id();
   rres_add_to_srv_set(&qres->rres);
 
@@ -286,6 +289,7 @@ qos_func_define(qos_rv, qres_destroy_server, qres_server_t *qres) {
   //}
 
   /* Would we need to hold some lock? */
+  qos_log_debug("Destroy group pointer %d", (int) qres->qsup.tg);
   sched_destroy_group(qres->qsup.tg);
 
   //qos_chk_ok_ret(rres_destroy_server(&qres->rres));
@@ -326,7 +330,7 @@ qos_bw_t _qres_get_bandwidth(server_t *srv) {
 #ifdef QRES_ENABLE_QSUP
   return qsup_get_approved_bw(&qres->qsup);
 #else
-  //return _rres_get_bandwidth(&qres->rres);
+  return _rres_get_bandwidth(&qres->rres);
 #endif
 }
 
