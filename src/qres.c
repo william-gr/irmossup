@@ -39,6 +39,7 @@
 #include "kal_sched.h"
 
 qres_sid_t server_id = 1;
+struct list_head server_list;
 
 /** Static QRES constructor  */
 qos_rv qres_init(void) {
@@ -240,6 +241,7 @@ qos_func_define(qos_rv, qres_init_server, qres_server_t *qres, qres_params_t *pa
   //qres->rres.cleanup = &_qres_cleanup_server;
   //qres->rres.get_bandwidth = &_qres_get_bandwidth;
   qres->rres.id = new_server_id();
+  rres_add_to_srv_set(&qres->rres);
 
   return QOS_OK;
 }
@@ -253,7 +255,6 @@ qres_sid_t new_server_id(void) {
   return server_id;
 }
 
-
 /** Return the pointer to the server with the specified server id, or
  ** NULL if not found.
  **
@@ -266,6 +267,7 @@ server_t* rres_find_by_id(qres_sid_t sid) {
   if (sid == QRES_SID_NULL)
     return rres_find_by_task(kal_task_current());
   for_each_server(srv, tmp_list) {
+    qos_log_debug("For each server: %d\n", srv->id);
     if (srv->id == sid)
       return srv;
   }

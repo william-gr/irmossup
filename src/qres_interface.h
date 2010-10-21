@@ -172,6 +172,7 @@ qres_sid_t new_server_id(void);
 server_t* rres_find_by_id(qres_sid_t sid);
 
 static inline qres_server_t * qres_find_by_id(qres_sid_t sid) {
+  qos_log_debug("Finding qres by id %d - rres_find_by_id(%d) found: %d", sid, sid, rres_find_by_id(sid));
   return qres_find_by_rres(rres_find_by_id(sid));
   return NULL;
 }
