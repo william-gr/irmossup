@@ -43,12 +43,22 @@ struct list_head server_list;
 /** Static QRES constructor  */
 qos_rv qres_init(void) {
   // compile-time check, run-time error at module insertion
+  int rv_sched;
 
   INIT_LIST_HEAD(&server_list);
   if (offsetof(qres_server_t, rres) != 0) {
     qos_log_crit("Please, ensure qres_server_t.rres field has a null offset");
     return QOS_E_INTERNAL_ERROR;
   }
+
+  rv_sched = sched_group_set_rt_runtime(&init_task_group, 1, 100000);
+  if (rv_sched<0) {
+     qos_log_debug("Error setting rt runtime for root: %d, retval: %d", 100000, rv_sched);
+  }
+
+  qos_log_debug("Task period for root is: %ld", sched_group_rt_period(&init_task_group, 1));
+  qos_log_debug("Task tuntime for root is: %ld", sched_group_rt_runtime(&init_task_group, 1));
+
   return QOS_OK;
 }
 
@@ -201,13 +211,6 @@ qos_func_define(qos_rv, qres_init_server, qres_server_t *qres, qres_params_t *pa
   qos_log_debug("Creating a new cgroup reservation");
 
   
-  rv_sched = sched_group_set_rt_runtime(&init_task_group, 1, 200000);
-  if (rv_sched<0) {
-     qos_log_debug("Error setting rt runtime for root: %d, retval: %d", 200000, rv_sched);
-  }
-
-  qos_log_debug("Task period for root is: %ld", sched_group_rt_period(&init_task_group, 1));
-  qos_log_debug("Task tuntime for root is: %ld", sched_group_rt_runtime(&init_task_group, 1));
 
   struct task_group *tg = sched_create_group(&init_task_group);
   if (IS_ERR(tg)) {
