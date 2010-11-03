@@ -99,6 +99,7 @@ static inline void kal_task_unlink_data(kal_task_t *task) {
 static inline void *kal_task_get_data(kal_task_t *task) {
   qos_chk_do(task != NULL, return NULL);
   //return task->private_data;
+  return NULL;
 }
 
 static inline int kal_task_get_id(kal_task_t *task) {

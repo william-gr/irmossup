@@ -359,6 +359,7 @@ qos_rv qsup_init_server(qsup_server_t *srv, int uid, int gid, qres_params_t *par
   }
 
   srv->server_id = next_server_id++;
+  srv->tg = NULL;
   srv->level = constr->level;
   srv->weight = constr->weight;
   srv->max_user_bw = constr->max_bw;

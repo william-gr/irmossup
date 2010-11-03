@@ -15,7 +15,6 @@
 
 #include "rres_config.h"
 #include "qres_config.h"
-//#define QOS_DEBUG_LEVEL QRES_MOD_DEBUG_LEVEL
 #include "qos_debug.h"
 #include <linux/posix-timers.h>
 #include <linux/time.h>
@@ -200,6 +199,16 @@ qos_func_define(qos_rv, qres_init_server, qres_server_t *qres, qres_params_t *pa
 
   /* Then, we create the cgroup for this reservation */
   qos_log_debug("Creating a new cgroup reservation");
+
+  
+  rv_sched = sched_group_set_rt_runtime(&init_task_group, 1, 200000);
+  if (rv_sched<0) {
+     qos_log_debug("Error setting rt runtime for root: %d, retval: %d", 200000, rv_sched);
+  }
+
+  qos_log_debug("Task period for root is: %ld", sched_group_rt_period(&init_task_group, 1));
+  qos_log_debug("Task tuntime for root is: %ld", sched_group_rt_runtime(&init_task_group, 1));
+
   struct task_group *tg = sched_create_group(&init_task_group);
   if (IS_ERR(tg)) {
 
@@ -215,10 +224,46 @@ qos_func_define(qos_rv, qres_init_server, qres_server_t *qres, qres_params_t *pa
   }
   qres->qsup.tg = tg;
 
+
   rv_sched = sched_group_set_rt_period(qres->qsup.tg, 0, param->P);
-  qos_log_debug("Set rt period return value: %d", rv_sched);
+  if (rv_sched<0) {
+     qos_log_debug("Error setting rt period: %ld", param->P);
+     qos_log_debug("Period setted: %ld", sched_group_rt_period(qres->qsup.tg, 0));
+     qsup_cleanup_server(&qres->qsup);
+     qres_update_bandwidths();
+     return QOS_E_UNAUTHORIZED;
+  }
+  qos_log_debug("Period added is: %ld", sched_group_rt_period(qres->qsup.tg, 0));
+
   rv_sched = sched_group_set_rt_runtime(qres->qsup.tg, 0, approved_Q);
-  qos_log_debug("Set rt runtime return value: %d", rv_sched);
+  if (rv_sched<0) {
+     qos_log_debug("Error setting rt runtime: %ld", approved_Q);
+     qos_log_debug("Runtime setted: %ld", sched_group_rt_runtime(qres->qsup.tg, 0));
+     qsup_cleanup_server(&qres->qsup);
+     qres_update_bandwidths();
+     return QOS_E_UNAUTHORIZED;
+  }
+  qos_log_debug("Runtime for task added is: %ld", sched_group_rt_runtime(qres->qsup.tg, 0));
+
+  rv_sched = sched_group_set_rt_period(qres->qsup.tg, 1, param->P);
+  if (rv_sched<0) {
+     qos_log_debug("Error setting rt task period: %ld", param->P);
+     qos_log_debug("Task period setted: %ld", sched_group_rt_period(qres->qsup.tg, 1));
+     qsup_cleanup_server(&qres->qsup);
+     qres_update_bandwidths();
+     return QOS_E_UNAUTHORIZED;
+  }
+  qos_log_debug("Period for task added is: %ld", sched_group_rt_period(qres->qsup.tg, 1));
+
+  rv_sched = sched_group_set_rt_runtime(qres->qsup.tg, 1, approved_Q);
+  if (rv_sched<0) {
+     qos_log_debug("Error setting rt task runtime: %ld", approved_Q);
+     qos_log_debug("Task runtime setted: %ld", sched_group_rt_runtime(qres->qsup.tg, 1));
+     qsup_cleanup_server(&qres->qsup);
+     qres_update_bandwidths();
+     return QOS_E_UNAUTHORIZED;
+  }
+  qos_log_debug("Runtime for task added is: %ld", sched_group_rt_runtime(qres->qsup.tg, 1));
 
   /** Then, create associated RRES resources            */
   //rv = rres_init_server(&qres->rres, approved_Q,
@@ -278,7 +323,7 @@ server_t* rres_find_by_id(qres_sid_t sid) {
 }
 
 qos_func_define(qos_rv, qres_destroy_server, qres_server_t *qres) {
-  struct task_struct *task;
+  //struct task_struct *task;
 
   //qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
   //while ((task = rres_any_ready_task(&qres->rres)) != NULL) {
@@ -336,10 +381,22 @@ qos_bw_t _qres_get_bandwidth(server_t *srv) {
 
 /** Attach to the server identified by srv_id the task identified by tsk */
 qos_func_define(qos_rv, qres_attach_task, qres_server_t *qres, struct task_struct *tsk) {
+  int rv;
+
   //qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
   if ((! authorize_for_task(tsk)) || (! authorize_for_server(qres)))
     return QOS_E_UNAUTHORIZED;
   //qos_chk_ok_ret(rres_attach_task(&qres->rres, tsk));
+
+  //qos_log_debug("task cgroups pointer %d", (int) tsk->cgroups);
+  tsk->tg = qres->qsup.tg;
+  qos_log_debug("going to move task");
+  sched_move_task(tsk);
+  qos_log_debug("sched move task rv: %d", rv);
+
+  //if(rv<0) {
+  //   qos_log_debug("Error attaching task to group");
+  //}
 
   /* Dynamic reclamation is automatic here, no need to explicitly       *
    * require the QSUP_DYNAMIC_RECLAIM switch !                          */
@@ -367,6 +424,9 @@ qos_func_define(qos_rv, qres_detach_task, qres_server_t *qres, struct task_struc
   if ((! authorize_for_task(tsk)) || (! authorize_for_server(qres)))
     return QOS_E_UNAUTHORIZED;
   //qos_chk_ok_ret(rres_detach_task(&qres->rres, tsk));
+
+  tsk->tg = &init_task_group;
+  sched_move_task(tsk);
 
   /* Dynamic reclamation is automatic here, no need to explicitly       *
    * require the QSUP_DYNAMIC_RECLAIM switch !                          */

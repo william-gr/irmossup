@@ -11,7 +11,6 @@
 
 #include "rres_config.h"
 #include "qres_config.h"
-//#define QOS_DEBUG_LEVEL QRES_MOD_DEBUG_LEVEL
 #include "qos_debug.h"
 
 #ifdef QRES_MOD_PROFILE
