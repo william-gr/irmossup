@@ -60,10 +60,10 @@ qos_rv qsup_gw_ks(qsup_op_t op, void __user *up_iparams, unsigned long size) {
   if (copy_from_user(&iparams, up_iparams, sizeof(qsup_iparams_t)))
     return QOS_E_INVALID_PARAM;
 
-  kal_spin_lock_irqsave(rres_get_spinlock(), &flags);
+  //kal_|spin_lock_irqsave(rres_get_spinlock(), &flags);
 
   if (! qsup_authorize_op(&iparams)) {
-    kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);
+    //kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);
     return QOS_E_UNAUTHORIZED;
   }
 
@@ -81,7 +81,7 @@ qos_rv qsup_gw_ks(qsup_op_t op, void __user *up_iparams, unsigned long size) {
   case QSUP_OP_FIND_CONSTR:
     iparams.u.found_rule.constr = 
       *(qsup_find_constr(iparams.u.found_rule.uid, iparams.u.found_rule.gid));
-    kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);
+    //kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);
     if (copy_to_user(up_iparams, &iparams, sizeof(qsup_iparams_t)))
       err = QOS_E_INTERNAL_ERROR;
     return err;
@@ -90,7 +90,7 @@ qos_rv qsup_gw_ks(qsup_op_t op, void __user *up_iparams, unsigned long size) {
     err = qsup_get_avail_gua_bw(iparams.u.avail.uid, iparams.u.avail.gid,
                                   &iparams.u.avail.avail_gua_bw);
     if (err == QOS_OK) {
-      kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);
+      //kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);
       if (copy_to_user(up_iparams, &iparams, sizeof(qsup_iparams_t)))
         err = QOS_E_INTERNAL_ERROR;
       return err;
@@ -104,6 +104,6 @@ qos_rv qsup_gw_ks(qsup_op_t op, void __user *up_iparams, unsigned long size) {
     err = QOS_E_INTERNAL_ERROR;	/* For debugging purposes */
   }
 
-  kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);
+  //kal_spin_unlock_irqrestore(rres_get_spinlock(), &flags);
   return err;
 }

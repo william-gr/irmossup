@@ -39,6 +39,7 @@
 
 qres_sid_t server_id = 1;
 struct list_head server_list;
+qos_bw_t U_tot = 0;
 
 /** Static QRES constructor  */
 qos_rv qres_init(void) {
@@ -126,13 +127,52 @@ qos_func_define(qos_rv, qres_create_server, qres_params_t *param, qres_sid_t *p_
   return QOS_OK;
 }
 
+int rres_has_ready_tasks(server_t *srv) {
+  if (RRES_PARANOID)
+    qos_chk_do(srv != NULL, return 0);
+  return ! list_empty(&srv->ready_tasks);
+}
+
+/** Change the maximum budget and update current server and total bandwidths.
+ **
+ ** @note: Current budget is updated at the next recharge.
+ **/
+qos_func_define(qos_rv, rres_set_budget, server_t *srv, qres_time_t new_budget) {
+  qos_bw_t new_bw;
+  //if (RRES_PARANOID)
+  //  qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
+  if (srv == NULL)
+    return QOS_E_INTERNAL_ERROR;
+  if(srv->period_us == 0) {
+    qos_log_debug("Divide for period_us = 0, aborting...");
+    return QOS_E_INTERNAL_ERROR;
+  }
+  new_bw = r2bw(new_budget, srv->period_us);
+  if (U_LUB2 - (U_tot - srv->get_bandwidth(srv)) < new_bw)
+    return QOS_E_SYSTEM_OVERLOAD;
+  srv->max_budget_us = new_budget;
+  srv->max_budget = kal_usec2time(new_budget);
+  rres_update_current_bandwidth(srv);
+  // @todo Any consequences on the potentiality of malicious violation of assigned max budget ?
+  //if ((! rres_has_ready_tasks(srv)) || (! kal_time_le(srv->c, srv->max_budget)))
+  //  srv->c = srv->max_budget;
+  return QOS_OK;
+}
+
+/** return the period (the value are returned via function parameters)
+ * @return 0 if the parameters have been succesfully changed,
+ * -1 in case of error */
+qos_func_define(qres_time_t, rres_get_period, server_t *srv) {
+  return srv->period_us;
+}
+
 /* TODO: Avoid admission control by RRES without going through all existing servers */
 void qres_update_bandwidths(void) {
   struct list_head *tmp;
   server_t *srv;
   for_each_server(srv, tmp) {
-    //qres_time_t q = bw2Q(rres_get_bandwidth(srv), rres_get_period(srv));
-    //rres_set_budget(srv, q);
+    qres_time_t q = bw2Q(rres_get_bandwidth(srv), rres_get_period(srv));
+    rres_set_budget(srv, q);
   }
 }
 
@@ -209,8 +249,6 @@ qos_func_define(qos_rv, qres_init_server, qres_server_t *qres, qres_params_t *pa
 
   /* Then, we create the cgroup for this reservation */
   qos_log_debug("Creating a new cgroup reservation");
-
-  
 
   struct task_group *tg = sched_create_group(&init_task_group);
   if (IS_ERR(tg)) {
@@ -326,7 +364,9 @@ server_t* rres_find_by_id(qres_sid_t sid) {
 }
 
 qos_func_define(qos_rv, qres_destroy_server, qres_server_t *qres) {
-  //struct task_struct *task;
+
+  struct task_struct *tsk;
+  struct list_head *pos, *n;
 
   //qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
   //while ((task = rres_any_ready_task(&qres->rres)) != NULL) {
@@ -336,12 +376,29 @@ qos_func_define(qos_rv, qres_destroy_server, qres_server_t *qres) {
     //qos_chk_ok_ret(rres_detach_task(&qres->rres, task));
   //}
 
-  /* Would we need to hold some lock? */
-  qos_log_debug("Destroy group pointer %d", (int) qres->qsup.tg);
-  sched_destroy_group(qres->qsup.tg);
+  if(qres->qsup.tg != NULL) {
+    list_for_each_safe(pos, n, &qres->qsup.tg->tasks) {
+          int rev;
+          tsk = list_entry(pos, struct task_struct, gtasks);
+          qos_log_debug("hmm task %d", (int) tsk);
+    	rev = sched_attach_task(&init_task_group, tsk);
+    	qos_log_debug("sched move task rev: %d", rev);
+
+    	if(rev<0) {
+    	   qos_log_debug("Error detaching task of group");
+    	}
+    }
+    qos_log_debug("Out of list for each");
+
+    /* Would we need to hold some lock? */
+    qos_log_debug("Destroy group pointer %d", (int) qres->qsup.tg);
+    sched_destroy_group(qres->qsup.tg);
+
+    //qres->qsup.tg = NULL;
+  }
 
   //qos_chk_ok_ret(rres_destroy_server(&qres->rres));
-  qres = NULL; // Don't use qres pointer from here on
+  //qres = NULL; // Don't use qres pointer from here on
 
   return QOS_OK;
 
@@ -392,14 +449,15 @@ qos_func_define(qos_rv, qres_attach_task, qres_server_t *qres, struct task_struc
   //qos_chk_ok_ret(rres_attach_task(&qres->rres, tsk));
 
   //qos_log_debug("task cgroups pointer %d", (int) tsk->cgroups);
-  tsk->tg = qres->qsup.tg;
-  qos_log_debug("going to move task");
-  sched_move_task(tsk);
+  //tsk->tg = qres->qsup.tg;
+  //qos_log_debug("going to move task");
+  //sched_move_task(tsk);
+  rv = sched_attach_task(qres->qsup.tg, tsk);
   qos_log_debug("sched move task rv: %d", rv);
 
-  //if(rv<0) {
-  //   qos_log_debug("Error attaching task to group");
-  //}
+  if(rv<0) {
+     qos_log_debug("Error attaching task to group");
+  }
 
   /* Dynamic reclamation is automatic here, no need to explicitly       *
    * require the QSUP_DYNAMIC_RECLAIM switch !                          */
@@ -421,6 +479,9 @@ qos_func_define(qos_rv, qres_attach_task, qres_server_t *qres, struct task_struc
  * could have been deallocated.
  */
 qos_func_define(qos_rv, qres_detach_task, qres_server_t *qres, struct task_struct *tsk) {
+
+  int rev;
+
   //qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
   if (qres == NULL)
     return QOS_E_NOT_FOUND;
@@ -428,8 +489,12 @@ qos_func_define(qos_rv, qres_detach_task, qres_server_t *qres, struct task_struc
     return QOS_E_UNAUTHORIZED;
   //qos_chk_ok_ret(rres_detach_task(&qres->rres, tsk));
 
-  tsk->tg = &init_task_group;
-  sched_move_task(tsk);
+  rev = sched_attach_task(&init_task_group, tsk);
+  qos_log_debug("sched move task rev: %d", rev);
+
+  if(rev<0) {
+     qos_log_debug("Error detaching task of group");
+  }
 
   /* Dynamic reclamation is automatic here, no need to explicitly       *
    * require the QSUP_DYNAMIC_RECLAIM switch !                          */
