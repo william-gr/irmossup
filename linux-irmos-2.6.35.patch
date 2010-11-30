@@ -1,0 +1,485 @@
+diff --git a/Makefile b/Makefile
+index 141da26..538ceeab 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,7 +1,7 @@
+ VERSION = 2
+ PATCHLEVEL = 6
+ SUBLEVEL = 35
+-EXTRAVERSION =
++EXTRAVERSION = irmos
+ NAME = Sheep on Meth
+ 
+ # *DOCUMENTATION*
+diff --git a/fs/eventfd.c b/fs/eventfd.c
+index 6bd3f76..65973e1 100644
+--- a/fs/eventfd.c
++++ b/fs/eventfd.c
+@@ -20,20 +20,6 @@
+ #include <linux/kref.h>
+ #include <linux/eventfd.h>
+ 
+-struct eventfd_ctx {
+-	struct kref kref;
+-	wait_queue_head_t wqh;
+-	/*
+-	 * Every time that a write(2) is performed on an eventfd, the
+-	 * value of the __u64 being written is added to "count" and a
+-	 * wakeup is performed on "wqh". A read(2) will return the "count"
+-	 * value to userspace, and will reset "count" to zero. The kernel
+-	 * side eventfd_signal() also, adds to the "count" counter and
+-	 * issue a wakeup.
+-	 */
+-	__u64 count;
+-	unsigned int flags;
+-};
+ 
+ /**
+  * eventfd_signal - Adds @n to the eventfd counter.
+diff --git a/include/linux/cgroup.h b/include/linux/cgroup.h
+index e3d00fd..31f49b1c9 100644
+--- a/include/linux/cgroup.h
++++ b/include/linux/cgroup.h
+@@ -57,26 +57,26 @@ enum cgroup_subsys_id {
+ #define CGROUP_SUBSYS_COUNT (BITS_PER_BYTE*sizeof(unsigned long))
+ 
+ /* Per-subsystem/per-cgroup state maintained by the system. */
+-struct cgroup_subsys_state {
+-	/*
+-	 * The cgroup that this subsystem is attached to. Useful
+-	 * for subsystems that want to know about the cgroup
+-	 * hierarchy structure
+-	 */
+-	struct cgroup *cgroup;
+-
+-	/*
+-	 * State maintained by the cgroup system to allow subsystems
+-	 * to be "busy". Should be accessed via css_get(),
+-	 * css_tryget() and and css_put().
+-	 */
+-
+-	atomic_t refcnt;
+-
+-	unsigned long flags;
+-	/* ID for this css, if possible */
+-	struct css_id *id;
+-};
++//struct cgroup_subsys_state {
++//	/*
++//	 * The cgroup that this subsystem is attached to. Useful
++//	 * for subsystems that want to know about the cgroup
++//	 * hierarchy structure
++//	 */
++//	struct cgroup *cgroup;
++//
++//	/*
++//	 * State maintained by the cgroup system to allow subsystems
++//	 * to be "busy". Should be accessed via css_get(),
++//	 * css_tryget() and and css_put().
++//	 */
++//
++//	atomic_t refcnt;
++//
++//	unsigned long flags;
++//	/* ID for this css, if possible */
++//	struct css_id *id;
++//};
+ 
+ /* bits in struct cgroup_subsys_state flags field */
+ enum {
+diff --git a/include/linux/eventfd.h b/include/linux/eventfd.h
+index 91bb4f2..39d9b24 100644
+--- a/include/linux/eventfd.h
++++ b/include/linux/eventfd.h
+@@ -12,6 +12,21 @@
+ #include <linux/file.h>
+ #include <linux/wait.h>
+ 
++struct eventfd_ctx {
++	struct kref kref;
++	wait_queue_head_t wqh;
++	/*
++	 * Every time that a write(2) is performed on an eventfd, the
++	 * value of the __u64 being written is added to "count" and a
++	 * wakeup is performed on "wqh". A read(2) will return the "count"
++	 * value to userspace, and will reset "count" to zero. The kernel
++	 * side eventfd_signal() also, adds to the "count" counter and
++	 * issue a wakeup.
++	 */
++	__u64 count;
++	unsigned int flags;
++};
++
+ /*
+  * CAREFUL: Check include/asm-generic/fcntl.h when defining
+  * new flags, since they might collide with O_* ones. We want
+diff --git a/include/linux/init_task.h b/include/linux/init_task.h
+index 1f43fa5..69f797b 100644
+--- a/include/linux/init_task.h
++++ b/include/linux/init_task.h
+@@ -11,6 +11,7 @@
+ #include <linux/user_namespace.h>
+ #include <linux/securebits.h>
+ #include <net/net_namespace.h>
++#include <linux/sched.h>
+ 
+ extern struct files_struct init_files;
+ extern struct fs_struct init_fs;
+@@ -147,6 +148,7 @@ extern struct cred init_cred;
+ 	.files		= &init_files,					\
+ 	.signal		= &init_signals,				\
+ 	.sighand	= &init_sighand,				\
++	.tg		= &init_task_group,				\
+ 	.nsproxy	= &init_nsproxy,				\
+ 	.pending	= {						\
+ 		.list = LIST_HEAD_INIT(tsk.pending.list),		\
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index da42f61..3f02735 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -149,7 +149,8 @@ extern unsigned long get_parent_ip(unsigned long addr);
+ 
+ struct seq_file;
+ struct cfs_rq;
+-struct task_group;
++
++
+ #ifdef CONFIG_SCHED_DEBUG
+ extern void proc_sched_show_task(struct task_struct *p, struct seq_file *m);
+ extern void proc_sched_set_task(struct task_struct *p);
+@@ -1169,6 +1170,7 @@ struct sched_rt_entity {
+ };
+ 
+ struct rcu_node;
++struct task_group;
+ 
+ struct task_struct {
+ 	volatile long state;	/* -1 unrunnable, 0 runnable, >0 stopped */
+@@ -1432,6 +1434,8 @@ struct task_struct {
+ 	/* cg_list protected by css_set_lock and tsk->alloc_lock */
+ 	struct list_head cg_list;
+ #endif
++	struct task_group *tg;
++	struct list_head gtasks;
+ #ifdef CONFIG_FUTEX
+ 	struct robust_list_head __user *robust_list;
+ #ifdef CONFIG_COMPAT
+@@ -1509,6 +1513,13 @@ struct task_struct {
+ /* Future-safe accessor for struct task_struct's cpus_allowed. */
+ #define tsk_cpus_allowed(tsk) (&(tsk)->cpus_allowed)
+ 
++struct rt_bandwidth {
++	/* nests inside the rq lock: */
++	raw_spinlock_t		rt_runtime_lock;
++	ktime_t			rt_period;
++	u64			rt_runtime;
++};
++
+ /*
+  * Priority of a process goes from 0..MAX_PRIO-1, valid RT
+  * priority is 0..MAX_RT_PRIO-1, and SCHED_NORMAL/SCHED_BATCH
+@@ -2454,11 +2465,68 @@ extern void normalize_rt_tasks(void);
+ 
+ #ifdef CONFIG_CGROUP_SCHED
+ 
++struct cgroup_subsys_state {
++        /*
++         * The cgroup that this subsystem is attached to. Useful
++         * for subsystems that want to know about the cgroup
++         * hierarchy structure
++         */
++        struct cgroup *cgroup;
++
++        /*
++         * State maintained by the cgroup system to allow subsystems
++         * to be "busy". Should be accessed via css_get(),
++         * css_tryget() and and css_put().
++         */
++
++        atomic_t refcnt;
++
++        unsigned long flags;
++        /* ID for this css, if possible */
++        struct css_id *id;
++};
++
++/* task group related information */
++struct task_group {
++	struct cgroup_subsys_state css;
++
++#ifdef CONFIG_FAIR_GROUP_SCHED
++	/* schedulable entities of this group on each cpu */
++	struct sched_entity **se;
++	/* runqueue "owned" by this group on each cpu */
++	struct cfs_rq **cfs_rq;
++	unsigned long shares;
++#endif
++
++#ifdef CONFIG_RT_GROUP_SCHED
++	struct rt_rq **rt_rq;
++
++	/* CPU bandwidth reserved to this group (tasks + child groups). */
++	struct rt_bandwidth rt_bandwidth;
++
++	/* CPU bandwidth reserved to the tasks in this group. */
++	struct rt_bandwidth rt_task_bandwidth;
++
++	bool rt_fill_runtime;
++#endif
++
++	struct rcu_head rcu;
++	struct list_head list;
++	struct list_head tasks;
++
++	struct task_group *parent;
++	struct list_head siblings;
++	struct list_head children;
++};
++
+ extern struct task_group init_task_group;
++#define root_task_group init_task_group
+ 
+ extern struct task_group *sched_create_group(struct task_group *parent);
+ extern void sched_destroy_group(struct task_group *tg);
++extern int sched_attach_task(struct task_group *tg, struct task_struct *tsk);
+ extern void sched_move_task(struct task_struct *tsk);
++void sched_exit_group(struct task_struct *tsk);
+ #ifdef CONFIG_FAIR_GROUP_SCHED
+ extern int sched_group_set_shares(struct task_group *tg, unsigned long shares);
+ extern unsigned long sched_group_shares(struct task_group *tg);
+diff --git a/kernel/exit.c b/kernel/exit.c
+index ceffc67..85bb6e7 100644
+--- a/kernel/exit.c
++++ b/kernel/exit.c
+@@ -50,6 +50,7 @@
+ #include <linux/perf_event.h>
+ #include <trace/events/sched.h>
+ #include <linux/hw_breakpoint.h>
++#include <linux/sched.h>
+ 
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
+@@ -972,6 +973,7 @@ NORET_TYPE void do_exit(long code)
+ 	check_stack_usage();
+ 	exit_thread();
+ 	cgroup_exit(tsk, 1);
++	//sched_exit_group(tsk);
+ 
+ 	if (group_dead)
+ 		disassociate_ctty(1);
+diff --git a/kernel/sched.c b/kernel/sched.c
+index 0f81344..ba7bc6e 100644
+--- a/kernel/sched.c
++++ b/kernel/sched.c
+@@ -140,13 +140,6 @@ struct rt_prio_array {
+ 	struct list_head queue[MAX_RT_PRIO];
+ };
+ 
+-struct rt_bandwidth {
+-	/* nests inside the rq lock: */
+-	raw_spinlock_t		rt_runtime_lock;
+-	ktime_t			rt_period;
+-	u64			rt_runtime;
+-};
+-
+ static struct rt_bandwidth def_rt_bandwidth;
+ 
+ static
+@@ -175,40 +168,6 @@ struct cfs_rq;
+ 
+ static LIST_HEAD(task_groups);
+ 
+-/* task group related information */
+-struct task_group {
+-	struct cgroup_subsys_state css;
+-
+-#ifdef CONFIG_FAIR_GROUP_SCHED
+-	/* schedulable entities of this group on each cpu */
+-	struct sched_entity **se;
+-	/* runqueue "owned" by this group on each cpu */
+-	struct cfs_rq **cfs_rq;
+-	unsigned long shares;
+-#endif
+-
+-#ifdef CONFIG_RT_GROUP_SCHED
+-	struct rt_rq **rt_rq;
+-
+-	/* CPU bandwidth reserved to this group (tasks + child groups). */
+-	struct rt_bandwidth rt_bandwidth;
+-
+-	/* CPU bandwidth reserved to the tasks in this group. */
+-	struct rt_bandwidth rt_task_bandwidth;
+-
+-	bool rt_fill_runtime;
+-#endif
+-
+-	struct rcu_head rcu;
+-	struct list_head list;
+-
+-	struct task_group *parent;
+-	struct list_head siblings;
+-	struct list_head children;
+-};
+-
+-#define root_task_group init_task_group
+-
+ /* task_group_lock serializes add/remove of task groups and also changes to
+  * a task group's cpu shares.
+  */
+@@ -579,11 +538,11 @@ static inline int cpu_of(struct rq *rq)
+  */
+ static inline struct task_group *task_group(struct task_struct *p)
+ {
+-	struct cgroup_subsys_state *css;
+-
+-	css = task_subsys_state_check(p, cpu_cgroup_subsys_id,
+-			lockdep_is_held(&task_rq(p)->lock));
+-	return container_of(css, struct task_group, css);
++	return p->tg;
++	//struct cgroup_subsys_state *css;
++	//css = task_subsys_state_check(p, cpu_cgroup_subsys_id,
++	//		lockdep_is_held(&task_rq(p)->lock));
++	//return container_of(css, struct task_group, css);
+ }
+ 
+ /* Change a task's cfs_rq and parent entity if it moves across CPUs/groups */
+@@ -8040,6 +7999,7 @@ struct task_group *sched_create_group(struct task_group *parent)
+ 
+ 	tg->parent = parent;
+ 	INIT_LIST_HEAD(&tg->children);
++	INIT_LIST_HEAD(&tg->tasks);
+ 	list_add_rcu(&tg->siblings, &parent->children);
+ 	spin_unlock_irqrestore(&task_group_lock, flags);
+ 
+@@ -8049,6 +8009,67 @@ err:
+ 	free_sched_group(tg);
+ 	return ERR_PTR(-ENOMEM);
+ }
++EXPORT_SYMBOL_GPL(sched_create_group);
++EXPORT_SYMBOL_GPL(init_task_group);
++
++void sched_exit_group(struct task_struct *tsk) {
++
++	struct task_group *tg;
++
++	tg = tsk->tg;
++	if(tg == &init_task_group)
++		goto out;
++
++	sched_attach_task(&init_task_group, tsk);
++
++	/* if num tasks inside tg = 0, destroy it
++		sched_destroy_group(tg);
++	*/
++	if(list_empty(&(tg->tasks))) {
++		sched_destroy_group(tg);
++	}
++
++out:
++	return;
++
++}
++
++/**
++ * @tg task_group to be attached
++ * @tsk which task to attach
++ *
++ * Attach a task to a schedule group.
++ * May take task_lock of the task 'tsk' during call.
++ */
++int sched_attach_task(struct task_group *tg, struct task_struct *tsk) {
++
++	int ret = 0;
++
++	//ret = sched_rt_can_attach(tg, tsk);
++
++	if(ret)
++		goto out;
++
++	if(tsk->tg != &init_task_group) {
++		list_del(&(tsk->gtasks));
++	}
++
++	task_lock(tsk);
++	tsk->tg = tg;
++	task_unlock(tsk);
++
++	sched_move_task(tsk);
++
++	if(tg != &init_task_group)
++		list_add(&(tsk->gtasks), &(tg->tasks));
++
++	return ret;
++
++out:
++	return -ENOMEM;
++
++}
++EXPORT_SYMBOL_GPL(sched_attach_task);
+ 
+ /* rcu callback to free various structures associated with a task group */
+ static void free_sched_group_rcu(struct rcu_head *rhp)
+@@ -8081,6 +8102,7 @@ void sched_destroy_group(struct task_group *tg)
+ 	/* wait for possible concurrent references to cfs_rqs complete */
+ 	call_rcu(&tg->rcu, free_sched_group_rcu);
+ }
++EXPORT_SYMBOL_GPL(sched_destroy_group);
+ 
+ /* change task's runqueue when it moves between groups.
+  *	The caller of this function should have put the task in its new group
+@@ -8427,6 +8449,7 @@ int sched_group_set_rt_runtime(struct task_group *tg, bool task_data,
+ 
+ 	return tg_set_bandwidth(tg, task_data, rt_period, rt_runtime, fill);
+ }
++EXPORT_SYMBOL_GPL(sched_group_set_rt_runtime);
+ 
+ long sched_group_rt_runtime(struct task_group *tg, bool task_data)
+ {
+@@ -8441,6 +8464,7 @@ long sched_group_rt_runtime(struct task_group *tg, bool task_data)
+ 	do_div(rt_runtime_us, NSEC_PER_USEC);
+ 	return rt_runtime_us;
+ }
++EXPORT_SYMBOL_GPL(sched_group_rt_runtime);
+ 
+ int sched_group_set_rt_period(struct task_group *tg, bool task_data,
+ 			      long rt_period_us)
+@@ -8456,6 +8480,7 @@ int sched_group_set_rt_period(struct task_group *tg, bool task_data,
+ 
+ 	return tg_set_bandwidth(tg, task_data, rt_period, rt_runtime, false);
+ }
++EXPORT_SYMBOL_GPL(sched_group_set_rt_period);
+ 
+ long sched_group_rt_period(struct task_group *tg, bool task_data)
+ {
+@@ -8468,6 +8493,7 @@ long sched_group_rt_period(struct task_group *tg, bool task_data)
+ 	do_div(rt_period_us, NSEC_PER_USEC);
+ 	return rt_period_us;
+ }
++EXPORT_SYMBOL_GPL(sched_group_rt_period);
+ 
+ int sched_group_rt_edf_params(struct task_group *tg, int cpu, long *now,
+ 			      long *runtime, long *deadline)
+@@ -8678,7 +8704,7 @@ cpu_cgroup_can_attach(struct cgroup_subsys *ss, struct cgroup *cgrp,
+ 	return 0;
+ }
+ 
+-static void
++void
+ cpu_cgroup_attach(struct cgroup_subsys *ss, struct cgroup *cgrp,
+ 		  struct cgroup *old_cont, struct task_struct *tsk,
+ 		  bool threadgroup)
+diff --git a/localversion-fabio b/localversion-fabio
+deleted file mode 100644
+index 5e2ff36..0000000
+--- a/localversion-fabio
++++ /dev/null
+@@ -1 +0,0 @@
+--fabio
+diff --git a/localversion-irmos-1.2testing b/localversion-irmos-1.2testing
+deleted file mode 100644
+index ff5cb04..0000000
+--- a/localversion-irmos-1.2testing
++++ /dev/null
+@@ -1 +0,0 @@
+--irmos-1.2testing
+\ No newline at end of file
