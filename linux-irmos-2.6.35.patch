@@ -248,7 +248,7 @@ index da42f61..3f02735 100644
  extern int sched_group_set_shares(struct task_group *tg, unsigned long shares);
  extern unsigned long sched_group_shares(struct task_group *tg);
 diff --git a/kernel/exit.c b/kernel/exit.c
-index ceffc67..85bb6e7 100644
+index ceffc67..b4631c7 100644
 --- a/kernel/exit.c
 +++ b/kernel/exit.c
 @@ -50,6 +50,7 @@
@@ -263,12 +263,12 @@ index ceffc67..85bb6e7 100644
  	check_stack_usage();
  	exit_thread();
  	cgroup_exit(tsk, 1);
-+	//sched_exit_group(tsk);
++	sched_exit_group(tsk);
  
  	if (group_dead)
  		disassociate_ctty(1);
 diff --git a/kernel/sched.c b/kernel/sched.c
-index 0f81344..ba7bc6e 100644
+index 0f81344..9706672 100644
 --- a/kernel/sched.c
 +++ b/kernel/sched.c
 @@ -140,13 +140,6 @@ struct rt_prio_array {
@@ -370,10 +370,10 @@ index 0f81344..ba7bc6e 100644
 +
 +	/* if num tasks inside tg = 0, destroy it
 +		sched_destroy_group(tg);
-+	*/
 +	if(list_empty(&(tg->tasks))) {
 +		sched_destroy_group(tg);
 +	}
++	*/
 +
 +out:
 +	return;
