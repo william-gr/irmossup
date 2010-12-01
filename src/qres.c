@@ -52,9 +52,9 @@ qos_rv qres_init(void) {
     return QOS_E_INTERNAL_ERROR;
   }
 
-  rv_sched = sched_group_set_rt_runtime(&init_task_group, 1, 100000);
+  rv_sched = sched_group_set_rt_runtime(&init_task_group, 1, 50000);
   if (rv_sched<0) {
-     qos_log_debug("Error setting rt runtime for root: %d, retval: %d", 100000, rv_sched);
+     qos_log_debug("Error setting rt runtime for root: %d, retval: %d", 50000, rv_sched);
   }
 
   qos_log_debug("Task period for root is: %ld", sched_group_rt_period(&init_task_group, 1));
@@ -139,6 +139,7 @@ int rres_has_ready_tasks(server_t *srv) {
  **/
 qos_func_define(qos_rv, rres_set_budget, server_t *srv, qres_time_t new_budget) {
   qos_bw_t new_bw;
+  int rv_sched;
   //if (RRES_PARANOID)
   //  qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
   if (srv == NULL)
@@ -152,7 +153,46 @@ qos_func_define(qos_rv, rres_set_budget, server_t *srv, qres_time_t new_budget) 
     return QOS_E_SYSTEM_OVERLOAD;
   srv->max_budget_us = new_budget;
   srv->max_budget = kal_usec2time(new_budget);
-  rres_update_current_bandwidth(srv);
+
+  //rres_update_current_bandwidth(srv);
+  qos_log_debug("Sched period (%ld) and budget (%ld)", srv->period_us, new_budget);
+
+  struct task_group *tg;
+  tg = (container_of(srv, struct qres_server, rres))->qsup.tg;
+
+  rv_sched = sched_group_set_rt_period(tg, 0, srv->period_us);
+  if (rv_sched<0) {
+     qos_log_debug("Error setting rt period: %ld", srv->period_us);
+     qos_log_debug("Period setted: %ld", sched_group_rt_period(tg, 0));
+     return QOS_E_UNAUTHORIZED;
+  }
+  qos_log_debug("Period added is: %ld", sched_group_rt_period(tg, 0));
+
+  rv_sched = sched_group_set_rt_runtime(tg, 0, new_budget);
+  if (rv_sched<0) {
+     qos_log_debug("Error setting rt runtime: %ld", new_budget);
+     qos_log_debug("Runtime setted: %ld", sched_group_rt_runtime(tg, 0));
+     return QOS_E_UNAUTHORIZED;
+  }
+  qos_log_debug("Runtime added is: %ld", sched_group_rt_runtime(tg, 0));
+
+  rv_sched = sched_group_set_rt_period(tg, 1, srv->period_us);
+  if (rv_sched<0) {
+     qos_log_debug("Error setting rt task period: %ld", srv->period_us);
+     qos_log_debug("Task period setted: %ld", sched_group_rt_period(tg, 1));
+     return QOS_E_UNAUTHORIZED;
+  }
+  qos_log_debug("Period for task added is: %ld", sched_group_rt_period(tg, 1));
+
+  rv_sched = sched_group_set_rt_runtime(tg, 1, new_budget);
+  if (rv_sched<0) {
+     qos_log_debug("Error setting rt task runtime: %ld", new_budget);
+     qos_log_debug("Task runtime setted: %ld", sched_group_rt_runtime(tg, 1));
+     return QOS_E_UNAUTHORIZED;
+  }
+  qos_log_debug("Runtime for task added is: %ld", sched_group_rt_runtime(tg, 1));
+
+
   // @todo Any consequences on the potentiality of malicious violation of assigned max budget ?
   //if ((! rres_has_ready_tasks(srv)) || (! kal_time_le(srv->c, srv->max_budget)))
   //  srv->c = srv->max_budget;
@@ -170,8 +210,33 @@ qos_func_define(qres_time_t, rres_get_period, server_t *srv) {
 void qres_update_bandwidths(void) {
   struct list_head *tmp;
   server_t *srv;
+  qos_log_debug("Update bandwidth");
+  int rv_sched;
+
+  for_each_server(srv, tmp) {
+    struct task_group *tg;
+    tg = (container_of(srv, struct qres_server, rres))->qsup.tg;
+    qos_log_debug("xxxxxxxx %ld %ld", (long) tg, (long) &init_task_group);
+
+
+    rv_sched = sched_group_set_rt_runtime(tg, 1, 0);
+    if (rv_sched<0) {
+       qos_log_debug("Error setting rt task runtime!!!!!: %ld", 0);
+       //return QOS_E_UNAUTHORIZED;
+    }
+
+    rv_sched = sched_group_set_rt_runtime(tg, 0, 0);
+    if (rv_sched<0) {
+       qos_log_debug("Error setting rt runtime!!!!!: %ld", (long) 0);
+       //return QOS_E_UNAUTHORIZED;
+    }
+
+
+  }
+
   for_each_server(srv, tmp) {
     qres_time_t q = bw2Q(rres_get_bandwidth(srv), rres_get_period(srv));
+    qos_log_debug("Set bw sched: %ld", q);
     rres_set_budget(srv, q);
   }
 }
@@ -185,6 +250,20 @@ qos_func_define(qos_rv, qres_init_server, qres_server_t *qres, qres_params_t *pa
   kal_uid_t uid;
   kal_gid_t gid;
   int rv_sched;
+
+  server_t *srv = &qres->rres;
+
+  srv->c = KAL_TIME_US(0, 0);
+  srv->deadline = kal_time_now();
+  srv->U_current = 0;
+  srv->max_budget_us = 0;
+  srv->max_budget = KAL_TIME_US(0, 0);
+  srv->period_us = param->P;
+  srv->period = kal_usec2time(param->P);
+  srv->stat.n_rcg = 0;
+  srv->stat.exec_time = KAL_TIME_US(0, 0);
+  srv->flags = param->flags;
+  srv->forbid_reorder = 0;
 
   //qos_chk_do(kal_atomic(), return QOS_E_INTERNAL_ERROR);
   qos_log_debug("(Q, P): (" QRES_TIME_FMT ", " QRES_TIME_FMT ")", param->Q, param->P);
@@ -265,7 +344,7 @@ qos_func_define(qos_rv, qres_init_server, qres_server_t *qres, qres_params_t *pa
   }
   qres->qsup.tg = tg;
 
-
+/*
   rv_sched = sched_group_set_rt_period(qres->qsup.tg, 0, param->P);
   if (rv_sched<0) {
      qos_log_debug("Error setting rt period: %ld", param->P);
@@ -305,6 +384,7 @@ qos_func_define(qos_rv, qres_init_server, qres_server_t *qres, qres_params_t *pa
      return QOS_E_UNAUTHORIZED;
   }
   qos_log_debug("Runtime for task added is: %ld", sched_group_rt_runtime(qres->qsup.tg, 1));
+*/
 
   /** Then, create associated RRES resources            */
   //rv = rres_init_server(&qres->rres, approved_Q,
@@ -331,6 +411,8 @@ qos_func_define(qos_rv, qres_init_server, qres_server_t *qres, qres_params_t *pa
   qres->rres.get_bandwidth = &_qres_get_bandwidth;
   qres->rres.id = new_server_id();
   rres_add_to_srv_set(&qres->rres);
+
+  qres_update_bandwidths();
 
   return QOS_OK;
 }
