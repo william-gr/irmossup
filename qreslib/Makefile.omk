@@ -1,0 +1,64 @@
+# Static Library(ies) to be built
+lib_LIBRARIES=qreslib
+
+# Shared Library(ies) to be built
+shared_LIBRARIES=qreslib
+
+# Space-independent utility code
+
+nospace_SOURCES:=../rresmod/qos_debug.c ../rresmod/qos_memory.c
+#nospace_HEADERS:=qos_debug.h qos_memory.h qres_config.h qos_types.h qres_gw.h qos_ul.h qos_ul_i386.h qos_ul_other.h qos_l.h qos_l_i386.h qos_l_other.h
+
+##### Application Library(ies)
+
+qreslib_SOURCES:=$(nospace_SOURCES) qres_lib.c
+include_HEADERS+=$(nospace_HEADERS) qres_lib.h
+#nobase_include_HEADERS+=qos_types.h rres_time.h
+include_DEST=aquosa
+CPPFLAGS+=-Wall -g -I $(KERN_INCLUDE_DIR) ## -Iinclude/$(ARCH) -O3 # -I$(SOURCES_DIR) -I$(SOURCES_DIR)/rres
+
+
+#### Binary programs and tests
+
+#bin_PROGRAMS = rt-app
+
+test_progs:=test-qres test-qres-base test-qres-pthreads
+test_progs+=fork_and_loop fork_and_loop_pthreads test-qres-sched
+
+utils_PROGRAMS:=$(test_progs)
+utils_PROGRAMS+=test-qres-app test-qres-loop test-qres-beginend test-get-budget
+
+LOADLIBES=-pthread -lrt
+
+test-qres-app_SOURCES=test-qres-app.c
+test-qres-app_LIBS=qreslib
+
+test-qres-loop_SOURCES=test-qres-loop.c
+test-qres-loop_LIBS=qreslib
+
+test-qres-beginend_SOURCES=test-qres-beginend.c
+test-qres-beginend_LIBS=qreslib
+
+test-get-budget_SOURCES=test-get-budget.c util_periodic.c
+test-get-budget_LIBS=qreslib
+
+#rt-app_SOURCES=rt-app.c
+#rt-app_LIBS=qreslib
+
+define test_def
+$(1)_SOURCES=$(1).c
+$(1)_LIBS=qreslib
+endef
+
+$(foreach prog,$(test_progs),$(eval $(call test_def,$(prog))))
+
+TEST_LOG_FILE=/tmp/aquosa-tests.log
+
+test-local:
+	@if [ -e /sbin/lsmod -a -z "`/sbin/lsmod | grep qresmod`"  ] ; then echo -e "\nWARNING: Kernel module 'qresmod' not inserted, some tests are going to fail.\n         Try (as root) 'insmod $(KERN_MODULES_DIR)/qresmod$(KERN_EXE_SUFFIX)'\n"; fi
+	@if (LD_LIBRARY_PATH="$$LD_LIBRARY_PATH:$(USER_LIB_DIR)" ldd $(USER_UTILS_DIR)/test-qres | grep 'not found') ; then echo -e "\nWARNING: Some test programs cannot find DLLs and will not execute.\n         Try setting LD_LIBRARY_PATH\n"; fi
+	@rm -f $(TEST_LOG_FILE)
+	@$(foreach prog,$(test_progs),printf "%30s" "Running $(prog) ... " ; printf "\n%30s\n" "RUNNING TEST $(prog)" >> $(TEST_LOG_FILE); if LD_LIBRARY_PATH="$$LD_LIBRARY_PATH:$(USER_LIB_DIR)" $(USER_UTILS_DIR)/$(prog) 2>> $(TEST_LOG_FILE); then echo "Ok"; else echo "Failed (see $(TEST_LOG_FILE))"; fi; )
+
+test-memcheck: binary-pass
+	@LD_LIBRARY_PATH="$$LD_LIBRARY_PATH:$(USER_LIB_DIR)" && if which valgrind ; then $(foreach prog,$(test_progs),printf "%50s" "Searching for memory leaks in $(prog) ... " ; if [ "`valgrind --tool=memcheck --leak-check=yes --show-reachable=yes $(USER_UTILS_DIR)/$(prog) 2>&1 | grep 'no leaks are possible'`" ]; then echo "Ok"; else echo "Memory leakages detected"; fi; ) else echo -e "\nThis make target requires the valgrind tool\n"; fi
